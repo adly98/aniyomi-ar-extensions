@@ -1,2 +1,21 @@
-# aniyomi-ar-extensions
-Arabic extensions for Aniyomi
+### Please give the repo a :star:
+
+
+## Source Code
+
+https://github.com/adly98/aniyomi-ar-extensions
+
+## Report issues
+
+https://github.com/adly98/aniyomi-ar-extensions/issues/new/choose
+
+## Guide
+
+1. Open Aniyomi
+2. Go to Settings -> Browse -> Anime extension repos
+3. add "https://github.com/adly98/aniyomi-ar-extensions/blob/repo/index.min.json"
+4. All avaliable arabic extensions will be at Browse
+
+
+# Others
+If you're not using any of the above fork then manually download and update extensions from [the listing page](https://github.com/adly98/aniyomi-ar-extensions/blob/repo/apk/)

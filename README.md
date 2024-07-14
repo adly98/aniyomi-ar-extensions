@@ -1,3 +1,6 @@
+| Install |
+|---------|
+| [![Install](https://img.shields.io/badge/Click%20here%20to%20install%20this%20repo-green&style=flat)](https://intradeus.github.io/http-protocol-redirector/?r=aniyomi://add-repo?url=https://raw.githubusercontent.com/aniyomiorg/aniyomi-extensions/repo/index.min.json) |
 
 # ![app icon](./.github/readme-images/app-icon.png)Arabic Aniyomi Extensions
 Aniyomi is a free and open source manga reader for Android 6.0 and above.

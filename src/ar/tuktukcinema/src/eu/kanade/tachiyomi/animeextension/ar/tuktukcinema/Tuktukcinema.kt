@@ -29,9 +29,9 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import kotlin.math.abs
 
-class Test : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
+class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
-    override val name = "Test"
+    override val name = "توك توك سينما"
 
     override val baseUrl = "https://w.tuktokcinema.com"
 

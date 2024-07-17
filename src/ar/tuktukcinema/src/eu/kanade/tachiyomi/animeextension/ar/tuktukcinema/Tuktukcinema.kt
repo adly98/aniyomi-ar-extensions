@@ -248,8 +248,8 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     open class SingleFilter(displayName: String, private val vals: Array<String>) :
         AnimeFilter.Select<String>(displayName, vals) {
-            fun toUriPart() = vals[state]
-        }
+        fun toUriPart() = vals[state]
+    }
 
     open class PairFilter(displayName: String, private val vals: Array<Pair<String, String>>) :
         AnimeFilter.Select<String>(displayName, vals.map { it.first }.toTypedArray()) {

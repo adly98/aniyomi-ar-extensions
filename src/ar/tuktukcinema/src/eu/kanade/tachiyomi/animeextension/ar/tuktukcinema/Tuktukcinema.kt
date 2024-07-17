@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.animeextension.ar.test
+package eu.kanade.tachiyomi.animeextension.ar.tuktukcinema
 
 import android.app.Application
 import android.content.SharedPreferences
@@ -29,7 +29,7 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import kotlin.math.abs
 
-class Test: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
+class Test : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override val name = "Test"
 
@@ -115,7 +115,7 @@ class Test: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
         val videoElements = document.select(videoListSelector())
-        return if(videoElements.isNullOrEmpty()) {
+        return if (videoElements.isNullOrEmpty()) {
             val new = client.newCall(GET(response.request.url.toString() + "watch/")).execute()
             Video("http://", new.toString(), "http://").let(::listOf)
         } else {
@@ -162,7 +162,7 @@ class Test: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                 StreamWishExtractor(client, headers).videosFromUrl(url, server)
             }
             "mixdrop" in server -> {
-                MixDropExtractor(client).videosFromUrl(url, "", customQuality?.let{ "[$it] "} ?: "")
+                MixDropExtractor(client).videosFromUrl(url, "", customQuality?.let { "[$it] " } ?: "")
             }
             else -> emptyList()
         }
@@ -177,9 +177,9 @@ class Test: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
         return sortedWith(
             compareBy { video ->
-                val videoQuality = video.quality.filter { it.isDigit() }.toIntOrNull() ?: Int.MAX_VALUE  // Handle non-integers as max value
+                val videoQuality = video.quality.filter { it.isDigit() }.toIntOrNull() ?: Int.MAX_VALUE
                 abs(preferredQuality - videoQuality)
-            }
+            },
         )
     }
 
@@ -247,9 +247,9 @@ class Test: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     )
 
     open class SingleFilter(displayName: String, private val vals: Array<String>) :
-    AnimeFilter.Select<String>(displayName, vals) {
-        fun toUriPart() = vals[state]
-    }
+        AnimeFilter.Select<String>(displayName, vals) {
+            fun toUriPart() = vals[state]
+        }
 
     open class PairFilter(displayName: String, private val vals: Array<Pair<String, String>>) :
         AnimeFilter.Select<String>(displayName, vals.map { it.first }.toTypedArray()) {
@@ -309,6 +309,6 @@ class Test: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     }
     companion object {
         // private val MIRRORS_REGEX by lazy { Regex("""label":"(.*?p).*?size":(.*?),.*?mirrors":\[(.*?)]}""")}
-        private val LINKS_REGEX by lazy { Regex("driver\":\\s*\"(.*?)\",\\n*\\s*\"link\":\\s*\"(.*?)\"")}
+        private val LINKS_REGEX by lazy { Regex("driver\":\\s*\"(.*?)\",\\n*\\s*\"link\":\\s*\"(.*?)\"") }
     }
 }

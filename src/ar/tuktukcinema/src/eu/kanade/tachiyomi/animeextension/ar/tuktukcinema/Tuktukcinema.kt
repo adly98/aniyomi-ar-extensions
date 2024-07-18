@@ -12,11 +12,11 @@ import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.lib.doodextractor.DoodExtractor
-import eu.kanade.tachiyomi.lib.vidbomextractor.VidBomExtractor
 import eu.kanade.tachiyomi.lib.mixdropextractor.MixDropExtractor
 import eu.kanade.tachiyomi.lib.mp4uploadextractor.Mp4uploadExtractor
 import eu.kanade.tachiyomi.lib.okruextractor.OkruExtractor
 import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
+import eu.kanade.tachiyomi.lib.vidbomextractor.VidBomExtractor
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
 import eu.kanade.tachiyomi.util.parallelCatchingFlatMapBlocking
@@ -65,7 +65,7 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         val document = response.asJsoup()
         val url = response.request.url.toString()
         val seasonsDOM = document.select(episodeListSelector())
-        return if (seasonsDOM.isNullOrEmpty()) {
+        return if (seasonsDOM.isEmpty()) {
             SEpisode.create().apply {
                 setUrlWithoutDomain(url)
                 name = "مشاهدة"
@@ -115,7 +115,7 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
         val videoElements = document.select(videoListSelector())
-        return if (videoElements.isNullOrEmpty()) {
+        return if (videoElements.isEmpty()) {
             val new = client.newCall(GET(response.request.url.toString() + "watch/")).execute()
             Video("http://", new.toString(), "http://").let(::listOf)
         } else {

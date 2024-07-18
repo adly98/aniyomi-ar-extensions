@@ -142,7 +142,7 @@ class Anime4Up : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
         val parsedData = json.decodeFromString<Qualities>(base64)
         val streamLinks = with(parsedData) { fhd + hd + sd }
-
+        // Just to update
         return streamLinks.values.distinct().parallelCatchingFlatMapBlocking(::extractVideos)
     }
 

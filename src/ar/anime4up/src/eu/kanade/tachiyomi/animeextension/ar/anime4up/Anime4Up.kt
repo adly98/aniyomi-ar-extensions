@@ -4,27 +4,16 @@ import android.app.Application
 import android.util.Base64
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
-import eu.kanade.tachiyomi.animeextension.ar.anime4up.extractors.SharedExtractor
-import eu.kanade.tachiyomi.animeextension.ar.anime4up.extractors.VidYardExtractor
 import eu.kanade.tachiyomi.animesource.ConfigurableAnimeSource
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
-import eu.kanade.tachiyomi.lib.doodextractor.DoodExtractor
-import eu.kanade.tachiyomi.lib.gdriveplayerextractor.GdrivePlayerExtractor
-import eu.kanade.tachiyomi.lib.mp4uploadextractor.Mp4uploadExtractor
-import eu.kanade.tachiyomi.lib.okruextractor.OkruExtractor
-import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
-import eu.kanade.tachiyomi.lib.uqloadextractor.UqloadExtractor
-import eu.kanade.tachiyomi.lib.vidbomextractor.VidBomExtractor
-import eu.kanade.tachiyomi.lib.voeextractor.VoeExtractor
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
 import eu.kanade.tachiyomi.util.parallelCatchingFlatMapBlocking
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import okhttp3.Request
 import okhttp3.Response
@@ -157,7 +146,7 @@ class Anime4Up : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         return streamLinks.values.distinct().parallelCatchingFlatMapBlocking(::extractVideos)
     }
 
-    private val uqloadExtractor by lazy { UqloadExtractor(client) }
+    /* private val uqloadExtractor by lazy { UqloadExtractor(client) }
     private val doodExtractor by lazy { DoodExtractor(client) }
     private val gdriveplayerExtractor by lazy { GdrivePlayerExtractor(client) }
     private val mp4uploadExtractor by lazy { Mp4uploadExtractor(client) }
@@ -166,7 +155,7 @@ class Anime4Up : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private val streamwishExtractor by lazy { StreamWishExtractor(client, headers) }
     private val vidbomExtractor by lazy { VidBomExtractor(client) }
     private val vidyardExtractor by lazy { VidYardExtractor(client, headers) }
-    private val voeExtractor by lazy { VoeExtractor(client) }
+    private val voeExtractor by lazy { VoeExtractor(client) } */
 
     private fun extractVideos(url: String): List<Video> {
         return Video(url, url, url).let(::listOf)

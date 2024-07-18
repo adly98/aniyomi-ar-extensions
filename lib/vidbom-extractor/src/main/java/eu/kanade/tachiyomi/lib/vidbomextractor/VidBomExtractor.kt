@@ -17,11 +17,9 @@ class VidBomExtractor(private val client: OkHttpClient) {
             val src = source.substringBefore("\"")
 
             val quality = when {
-                // Vidbom & Govid
                 "v.mp4" in src -> {
                     "${if("go" in url) "Govid" else "Vidbom"}: " + source.substringAfter("label:\"").substringBefore("\"")
                 }
-                // Vidshare
                 else -> {
                     val m3u8 = client.newCall(GET(src)).execute().body.string()
                         .substringAfter("RESOLUTION=").substringAfter("x").substringBefore(",") + "p"

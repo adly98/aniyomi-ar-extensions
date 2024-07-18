@@ -10,6 +10,7 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 ij_kotlin_allow_trailing_comma = true
 ij_kotlin_allow_trailing_comma_on_call_site = true
+ij_kotlin_imports_layout = *,java.**,javax.**,kotlin.**,^
 ktlint_experimental = enabled
 ktlint_experimental_argument-list-wrapping = disabled # Doesn't play well with Android Studio
 ktlint_experimental_comment-wrapping = disabled

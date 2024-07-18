@@ -169,7 +169,8 @@ class Anime4Up : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private val voeExtractor by lazy { VoeExtractor(client) }
 
     private fun extractVideos(url: String): List<Video> {
-        return when {
+        return Video(url, url, url).let(::listOf)
+        /*return when {
             url.contains("drive.google") -> {
                 val embedUrlG = "https://gdriveplayer.to/embed2.php?link=$url"
                 gdriveplayerExtractor.videosFromUrl(embedUrlG, "GdrivePlayer", headers)
@@ -184,7 +185,7 @@ class Anime4Up : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             VIDBOM_REGEX.containsMatchIn(url) -> vidbomExtractor.videosFromUrl(url)
             STREAMWISH_REGEX.containsMatchIn(url) -> streamwishExtractor.videosFromUrl(url) { "Mirror: $it" }
             else -> null
-        } ?: emptyList()
+        } ?: emptyList() */
     }
 
     override fun videoListSelector() = throw UnsupportedOperationException()

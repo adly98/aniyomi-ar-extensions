@@ -184,7 +184,7 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     videoQualityFiltered.toIntOrNull() ?: Int.MAX_VALUE
                 }
                 abs(preferredQuality - videoQuality)
-            }
+            },
         )
     }
 

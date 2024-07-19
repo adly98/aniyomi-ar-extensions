@@ -27,7 +27,6 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import kotlin.math.abs
 
 class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
@@ -173,14 +172,18 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun videoUrlParse(document: Document) = throw UnsupportedOperationException()
 
     override fun List<Video>.sort(): List<Video> {
-        val preferredQuality = preferences.getString("preferred_quality", "1080")!!.toInt()
+        /*val preferredQuality = preferences.getString("preferred_quality", "1080")!!.toInt()
 
         return sortedWith(
             compareBy { video ->
                 val videoQuality = video.quality.filter { it.isDigit() }.toIntOrNull() ?: Int.MAX_VALUE
                 abs(preferredQuality - videoQuality)
             },
-        )
+        )*/
+        val quality = preferences.getString("preferred_quality", "1080")!!
+        return sortedWith(
+            compareBy { it.quality.contains(quality) },
+        ).reversed()
     }
 
     // =============================== Search ===============================

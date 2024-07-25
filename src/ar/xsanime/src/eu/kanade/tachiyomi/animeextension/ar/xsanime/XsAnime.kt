@@ -208,15 +208,15 @@ class XsAnime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         anime.description = document.select("div.singleInfo div.story p").text()
         document.select("div.singleInfoCon ul:contains(عدد الحلقات)").text().filter { it.isDigit() }
             .toIntOrNull().also { episodesNum ->
-            val episodesCount = document.select("#episodes a").size + 1
-            when {
-                episodesCount == episodesNum || episodesNum == null -> anime.status =
-                    SAnime.COMPLETED
+                val episodesCount = document.select("#episodes a").size + 1
+                when {
+                    episodesCount == episodesNum || episodesNum == null -> anime.status =
+                        SAnime.COMPLETED
 
-                episodesCount < episodesNum -> anime.status = SAnime.ONGOING
-                else -> anime.status = SAnime.UNKNOWN
+                    episodesCount < episodesNum -> anime.status = SAnime.ONGOING
+                    else -> anime.status = SAnime.UNKNOWN
+                }
             }
-        }
         return anime
     }
 

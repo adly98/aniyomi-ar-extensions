@@ -347,5 +347,4 @@ class Anime4Up : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         }
         screen.addPreference(videoQualityPref)
     }
-
 }

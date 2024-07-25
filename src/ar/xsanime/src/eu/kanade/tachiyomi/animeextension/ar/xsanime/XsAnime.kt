@@ -210,9 +210,7 @@ class XsAnime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             .toIntOrNull().also { episodesNum ->
                 val episodesCount = document.select("#episodes a").size + 1
                 when {
-                    episodesCount == episodesNum || episodesNum == null -> anime.status =
-                        SAnime.COMPLETED
-
+                    episodesCount == episodesNum || episodesNum == null -> anime.status = SAnime.COMPLETED
                     episodesCount < episodesNum -> anime.status = SAnime.ONGOING
                     else -> anime.status = SAnime.UNKNOWN
                 }

@@ -13,7 +13,7 @@ class MixDropExtractor(private val client: OkHttpClient) {
     fun videoFromUrl(
         url: String,
         lang: String = "",
-        prefix: String = "",
+        suffix: String = "",
         externalSubs: List<Track> = emptyList(),
         referer: String = DEFAULT_REFERER,
     ): List<Video> {
@@ -33,7 +33,7 @@ class MixDropExtractor(private val client: OkHttpClient) {
             ?: emptyList()
 
         val quality = buildString {
-            append("${prefix}MixDrop")
+            append("MixDrop${if (suffix.isNotBlank()) ": $suffix" else ""}")
             if (lang.isNotBlank()) append("($lang)")
         }
 
@@ -43,10 +43,10 @@ class MixDropExtractor(private val client: OkHttpClient) {
     fun videosFromUrl(
         url: String,
         lang: String = "",
-        prefix: String = "",
+        suffix: String = "",
         externalSubs: List<Track> = emptyList(),
         referer: String = DEFAULT_REFERER,
-    ) = videoFromUrl(url, lang, prefix, externalSubs, referer)
+    ) = videoFromUrl(url, lang, suffix, externalSubs, referer)
 }
 
 private const val DEFAULT_REFERER = "https://mixdrop.co/"

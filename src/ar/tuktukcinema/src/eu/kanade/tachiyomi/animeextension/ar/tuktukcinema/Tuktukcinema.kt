@@ -14,6 +14,7 @@ import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.lib.doodextractor.DoodExtractor
 import eu.kanade.tachiyomi.lib.mixdropextractor.MixDropExtractor
 import eu.kanade.tachiyomi.lib.mp4uploadextractor.Mp4uploadExtractor
+import eu.kanade.tachiyomi.lib.multiservers.MultiServers
 import eu.kanade.tachiyomi.lib.okruextractor.OkruExtractor
 import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
 import eu.kanade.tachiyomi.lib.vidbomextractor.VidBomExtractor
@@ -51,7 +52,9 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun popularAnimeFromElement(element: Element): SAnime {
         return SAnime.create().apply {
             title = element.select("a").attr("title").let { editTitle(it, true) }
-            thumbnail_url = element.select("img").attr(if (element.ownerDocument()!!.location().contains("?s=")) "src" else "data-src")
+            thumbnail_url = element.select("img").attr(
+                if (element.ownerDocument()!!.location().contains("?s=")) "src" else "data-src",
+            )
             setUrlWithoutDomain(element.select("a").attr("href"))
         }
     }
@@ -65,7 +68,7 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         val document = response.asJsoup()
         val url = response.request.url.toString()
         val seasonsDOM = document.select(episodeListSelector())
-        return if (seasonsDOM.isEmpty()) {
+        return if (seasonsDOM.isNullOrEmpty()) {
             SEpisode.create().apply {
                 setUrlWithoutDomain(url)
                 name = "مشاهدة"
@@ -74,19 +77,26 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             document.select(episodeListSelector()).reversed().flatMap { season ->
                 val seasonNum = season.select("h3").text()
                 var seasonDoc = document
-                if (seasonNum != document.selectFirst("div#mpbreadcrumbs a span:contains(الموسم)")!!.text()) {
-                    seasonDoc = client.newCall(GET(season.selectFirst("a")!!.attr("href"))).execute().asJsoup()
+                if (seasonNum != document.selectFirst("div#mpbreadcrumbs a span:contains(الموسم)")!!
+                        .text()
+                ) {
+                    seasonDoc =
+                        client.newCall(GET(season.selectFirst("a")!!.attr("href"))).execute()
+                            .asJsoup()
                 }
                 seasonDoc.select("section.allepcont a").map { episode ->
                     SEpisode.create().apply {
                         setUrlWithoutDomain(episode.attr("href"))
-                        name = seasonNum + " : الحلقة " + episode.select("div.epnum").text().filter { it.isDigit() }
+                        name = "$seasonNum : الحلقة " + episode.select("div.epnum").text()
+                            .filter { it.isDigit() }
                     }
                 }
             }
         }
     }
-    override fun episodeFromElement(element: Element): SEpisode = throw UnsupportedOperationException()
+
+    override fun episodeFromElement(element: Element): SEpisode =
+        throw UnsupportedOperationException()
 
     // =========================== Anime Details ============================
     override fun animeDetailsParse(document: Document): SAnime {
@@ -105,7 +115,10 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun videoListRequest(episode: SEpisode): Request {
         val docHeaders = headers.newBuilder().apply {
-            add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+            add(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            )
             add("Referer", "$baseUrl/")
         }.build()
 
@@ -127,43 +140,52 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         }
     }
 
-    private fun extractVideos(url: String, server: String, customQuality: String? = null): List<Video> {
+    private val multiServers by lazy { MultiServers(client, headers) }
+    private val okRuExtractor by lazy { OkruExtractor(client) }
+    private val dooDExtractor by lazy { DoodExtractor(client) }
+    private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
+    private val vidBomExtractor by lazy { VidBomExtractor(client) }
+    private val mp4uploadExtractor by lazy { Mp4uploadExtractor(client) }
+    private val mixDropExtractor by lazy { MixDropExtractor(client) }
+
+    private fun extractVideos(
+        url: String,
+        server: String,
+        customQuality: String? = null,
+    ): List<Video> {
         return when {
             "tuktuk" in url -> {
-                val newH = headers.newBuilder()
-                    .add("X-Inertia", "true")
-                    .add("X-Inertia-Partial-Component", "files/mirror/video")
-                    .add("X-Inertia-Partial-Data", "streams")
-                    .add("X-Inertia-Version", "933f5361ce18c71b82fa342f88de9634")
-                    .build()
-                val iframe = client.newCall(GET(url, newH)).execute()
-                val allUrls = mutableListOf<List<String>>()
-                LINKS_REGEX.findAll(iframe.body.string()).forEach {
-                    allUrls.add(mutableListOf("https:" + it.groupValues[2].replace("\\\\", ""), it.groupValues[1]))
-                }
-                allUrls.parallelCatchingFlatMapBlocking {
-                    extractVideos(it[0], it[1])
+                return multiServers.extractedUrls(url).parallelCatchingFlatMapBlocking {
+                    extractVideos(it.url, it.name, it.quality)
                 }
             }
+
             "ok.ru" in url -> {
-                OkruExtractor(client).videosFromUrl(url)
+                okRuExtractor.videosFromUrl(url)
             }
+
             "Vidbom" in server || "Vidshare" in server || "Govid" in server -> {
                 val newH = headers.newBuilder().add("Referer", baseUrl).build()
-                VidBomExtractor(client).videosFromUrl(url, newH)
+                vidBomExtractor.videosFromUrl(url, newH)
             }
+
             "dood" in server -> {
-                DoodExtractor(client).videoFromUrl(url, "Dood: ${customQuality ?: "Mirror"}")?.let(::listOf) ?: emptyList()
+                dooDExtractor.videoFromUrl(url, "Dood: ${customQuality ?: "Mirror"}")?.let(::listOf)
+                    ?: emptyList()
             }
+
             "mp4" in server -> {
-                Mp4uploadExtractor(client).videosFromUrl(url, headers)
+                mp4uploadExtractor.videosFromUrl(url, headers)
             }
+
             "Upstream" in server || "streamwish" in server || "vidhide" in server -> {
-                StreamWishExtractor(client, headers).videosFromUrl(url, server)
+                streamWishExtractor.videosFromUrl(url, server.apply { first().uppercase() })
             }
+
             "mixdrop" in server -> {
-                MixDropExtractor(client).videosFromUrl(url, "", customQuality?.let { "[$it] " } ?: "")
+                mixDropExtractor.videosFromUrl(url, "", customQuality?.let { "$it " } ?: "")
             }
+
             else -> emptyList()
         }
     }
@@ -173,7 +195,8 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun videoUrlParse(document: Document) = throw UnsupportedOperationException()
 
     override fun List<Video>.sort(): List<Video> {
-        val preferredQuality = preferences.getString("preferred_quality", "1080")!!.toIntOrNull() ?: 1080
+        val preferredQuality =
+            preferences.getString("preferred_quality", "1080")!!.toIntOrNull() ?: 1080
 
         return sortedWith(
             compareBy { video ->
@@ -247,7 +270,20 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private class GenreFilter : SingleFilter(
         "التصنيف",
         arrayOf(
-            "اكشن", "مغامرة", "كرتون", "فانتازيا", "خيال-علمي", "رومانسي", "كوميدي", "عائلي", "دراما", "اثارة", "غموض", "جريمة", "رعب", "وثائقي",
+            "اكشن",
+            "مغامرة",
+            "كرتون",
+            "فانتازيا",
+            "خيال-علمي",
+            "رومانسي",
+            "كوميدي",
+            "عائلي",
+            "دراما",
+            "اثارة",
+            "غموض",
+            "جريمة",
+            "رعب",
+            "وثائقي",
         ).sortedArray(),
     )
 
@@ -264,9 +300,11 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // =============================== Latest ===============================
     override fun latestUpdatesSelector(): String = popularAnimeSelector()
 
-    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/recent/page/$page/", headers)
+    override fun latestUpdatesRequest(page: Int): Request =
+        GET("$baseUrl/recent/page/$page/", headers)
 
-    override fun latestUpdatesFromElement(element: Element): SAnime = popularAnimeFromElement(element)
+    override fun latestUpdatesFromElement(element: Element): SAnime =
+        popularAnimeFromElement(element)
 
     override fun latestUpdatesNextPageSelector(): String = popularAnimeNextPageSelector()
 
@@ -311,9 +349,5 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             }
         }
         screen.addPreference(videoQualityPref)
-    }
-    companion object {
-        // private val MIRRORS_REGEX by lazy { Regex("""label":"(.*?p).*?size":(.*?),.*?mirrors":\[(.*?)]}""")}
-        private val LINKS_REGEX by lazy { Regex("driver\":\\s*\"(.*?)\",\\n*\\s*\"link\":\\s*\"(.*?)\"") }
     }
 }

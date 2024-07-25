@@ -1,12 +1,13 @@
 ext {
     extName = 'Tuktuk Cinema'
     extClass = '.Tuktukcinema'
-    extVersionCode = 26
+    extVersionCode = 27
 }
 
 apply from: "$rootDir/common.gradle"
 
 dependencies {
+    implementation(project(':lib:multiservers'))
     implementation(project(':lib:okru-extractor'))
     implementation(project(':lib:dood-extractor'))
     implementation(project(':lib:vidbom-extractor'))
@@ -14,3 +15,4 @@ dependencies {
     implementation(project(':lib:mp4upload-extractor'))
     implementation(project(':lib:streamwish-extractor'))
 }
+

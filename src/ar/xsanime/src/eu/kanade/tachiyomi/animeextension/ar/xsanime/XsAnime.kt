@@ -100,7 +100,7 @@ class XsAnime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
     private val vidBomExtractor by lazy { VidBomExtractor(client) }
     private val mp4uploadExtractor by lazy { Mp4uploadExtractor(client) }
-    private val mixDropExtractor by lazy { MixDropExtractor(client) }
+    private val mixDropExtractor by lazy { MixDropExtractor(client, headers) }
     private val voeExtractor by lazy { VoeExtractor(client) }
 
     private fun extractVideos(
@@ -132,7 +132,7 @@ class XsAnime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             }
 
             "mixdrop" in server -> {
-                mixDropExtractor.videosFromUrl(url, "", customQuality?.let { "$it " } ?: "")
+                mixDropExtractor.videosFromUrl(url, customQuality?.let { "$it " } ?: "")
             }
 
             "mp4" in server -> {

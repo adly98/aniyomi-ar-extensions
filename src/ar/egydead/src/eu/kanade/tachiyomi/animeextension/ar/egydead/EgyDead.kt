@@ -141,7 +141,7 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                 DoodExtractor(client).videoFromUrl(url, "Dood mirror")?.let(::listOf)
             }
             url.contains("mdbekjwqa") -> {
-                MixDropExtractor(client).videoFromUrl(url)
+                MixDropExtractor(client, headers).videosFromUrl(url)
             }
             url.contains("ahvsh") -> {
                 val request = client.newCall(GET(url, headers)).execute().asJsoup()

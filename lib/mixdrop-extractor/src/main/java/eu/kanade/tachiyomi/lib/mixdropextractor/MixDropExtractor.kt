@@ -1,52 +1,45 @@
 package eu.kanade.tachiyomi.lib.mixdropextractor
 
-import eu.kanade.tachiyomi.animesource.model.Track
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.lib.unpacker.Unpacker
 import eu.kanade.tachiyomi.network.GET
-import eu.kanade.tachiyomi.util.asJsoup
 import okhttp3.Headers
 import okhttp3.OkHttpClient
-import java.net.URLDecoder
 
-class MixDropExtractor(private val client: OkHttpClient) {
-    fun videoFromUrl(
-        url: String,
-        lang: String = "",
-        suffix: String = "",
-        externalSubs: List<Track> = emptyList(),
-        referer: String = DEFAULT_REFERER,
-    ): List<Video> {
-        val headers = Headers.headersOf("Referer", referer)
-        val doc = client.newCall(GET(url, headers)).execute().asJsoup()
-        val unpacked = doc.selectFirst("script:containsData(eval):containsData(MDCore)")
-            ?.data()
-            ?.let(Unpacker::unpack)
-            ?: return emptyList()
-
-        val videoUrl = "https:" + unpacked.substringAfter("Core.wurl=\"")
-            .substringBefore("\"")
-
-        val subs = unpacked.substringAfter("Core.remotesub=\"").substringBefore('"')
-            .takeIf(String::isNotBlank)
-            ?.let { listOf(Track(URLDecoder.decode(it, "utf-8"), "sub")) }
-            ?: emptyList()
-
-        val quality = buildString {
-            append("MixDrop${if (suffix.isNotBlank()) ": $suffix" else ""}")
-            if (lang.isNotBlank()) append("($lang)")
-        }
-
-        return listOf(Video(videoUrl, quality, videoUrl, headers = headers, subtitleTracks = subs + externalSubs))
-    }
+class MixDropExtractor(private val client: OkHttpClient, private val headers: Headers) {
 
     fun videosFromUrl(
         url: String,
-        lang: String = "",
-        suffix: String = "",
-        externalSubs: List<Track> = emptyList(),
-        referer: String = DEFAULT_REFERER,
-    ) = videoFromUrl(url, lang, suffix, externalSubs, referer)
+        quality: String = "",
+    ): List<Video> {
+        val host = url.split("/")[2].let {
+            if (it.endsWith(".club")) it.replace(".club", ".co") else it
+        }
+        val rUrl = "https://$host/"
+        val newH = headers.newBuilder().add("Referer", rUrl).add("Origin", rUrl.dropLast(1)).build()
+        var html = client.newCall(GET(url, newH)).execute().body.string()
+        val r = Regex("""location\s*=\s*["']([^'"]+)""").find(html)
+        var newUrl = url
+        if (r != null) {
+            newUrl = "https://${host}${r.groupValues[1]}"
+            html = client.newCall(GET(newUrl, newH)).execute().body.string()
+        }
+        if ("(p,a,c,k,e,d)" in html) {
+            html = html.let(Unpacker::unpack)
+        }
+        val urlMatch = Regex("""(?:vsr|wurl|surl)[^=]*=\s*"([^"]+)""").find(html)
+        if (urlMatch != null) {
+            val sUrl = urlMatch.groupValues[1].let {
+                if (it.startsWith("//")) it.replace("//", "https://") else it
+            }
+            val videoH = headers.newBuilder().set("Referer", newUrl).build()
+            return Video(
+                sUrl,
+                "MixDrop${if (quality.isNotBlank()) ": $quality" else ""}",
+                sUrl,
+                headers = videoH,
+            ).let(::listOf)
+        }
+        return emptyList()
+    }
 }
-
-private const val DEFAULT_REFERER = "https://mixdrop.co/"

@@ -282,10 +282,10 @@
   {
     "name": "Aniyomi: Tuktuk Cinema",
     "pkg": "eu.kanade.tachiyomi.animeextension.ar.tuktukcinema",
-    "apk": "aniyomi-ar.tuktukcinema-v14.30.apk",
+    "apk": "aniyomi-ar.tuktukcinema-v14.31.apk",
     "lang": "ar",
-    "code": 30,
-    "version": "14.30",
+    "code": 31,
+    "version": "14.31",
     "nsfw": 0,
     "hasReadme": 0,
     "hasChangelog": 0,

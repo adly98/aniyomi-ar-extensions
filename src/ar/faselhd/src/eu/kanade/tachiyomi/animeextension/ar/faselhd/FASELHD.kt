@@ -64,7 +64,8 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // ============================== Episodes ==============================
     override fun episodeListSelector() = "div.epAll a"
 
-    private fun seasonsNextPageSelector(seasonNumber: Int) = "div#seasonList div.col-xl-2:nth-child($seasonNumber)" // "div.List--Seasons--Episodes > a:nth-child($seasonNumber)"
+    private fun seasonsNextPageSelector(seasonNumber: Int) =
+        "div#seasonList div.col-xl-2:nth-child($seasonNumber)" // "div.List--Seasons--Episodes > a:nth-child($seasonNumber)"
 
     override fun episodeListParse(response: Response): List<SEpisode> {
         val episodes = mutableListOf<SEpisode>()
@@ -75,6 +76,7 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             episode.name = "مشاهدة"
             return episode
         }
+
         fun addEpisodes(document: Document) {
             if (document.select(episodeListSelector()).isNullOrEmpty()) {
                 document.select("div.shortLink").map { episodes.add(episodeExtract(it)) }
@@ -86,7 +88,8 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                         client.newCall(
                             GET(
                                 "$baseUrl/?p=" + it.select("div.seasonDiv")
-                                    .attr("onclick").substringAfterLast("=").substringBeforeLast("'"),
+                                    .attr("onclick").substringAfterLast("=")
+                                    .substringBeforeLast("'"),
                                 headers,
                             ),
                         ).execute().asJsoup(),
@@ -102,7 +105,8 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun episodeFromElement(element: Element): SEpisode {
         val episode = SEpisode.create()
         episode.setUrlWithoutDomain(element.attr("abs:href"))
-        episode.name = element.ownerDocument()!!.select("div.seasonDiv.active > div.title").text() + " : " + element.text()
+        episode.name = element.ownerDocument()!!.select("div.seasonDiv.active > div.title")
+            .text() + " : " + element.text()
         episode.episode_number = element.text().replace("الحلقة ", "").toFloat()
         return episode
     }
@@ -169,7 +173,8 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun animeDetailsParse(document: Document): SAnime {
         val anime = SAnime.create()
         anime.title = document.select("meta[itemprop=name]").attr("content")
-        anime.genre = document.select("span:contains(تصنيف) > a, span:contains(مستوى) > a").joinToString(", ") { it.text() }
+        anime.genre = document.select("span:contains(تصنيف) > a, span:contains(مستوى) > a")
+            .joinToString(", ") { it.text() }
         // anime.thumbnail_url = document.select("div.posterImg img.poster").attr("src")
 
         val cover = document.select("div.posterImg img.poster").attr("src")
@@ -179,7 +184,10 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             cover
         }
         anime.description = document.select("div.singleDesc").text()
-        anime.status = parseStatus(document.select("span:contains(حالة)").text().replace("حالة ", "").replace("المسلسل : ", ""))
+        anime.status = parseStatus(
+            document.select("span:contains(حالة)").text().replace("حالة ", "")
+                .replace("المسلسل : ", ""),
+        )
         return anime
     }
 
@@ -191,7 +199,8 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     }
 
     // =============================== Latest ===============================
-    override fun latestUpdatesNextPageSelector(): String = "ul.pagination li a.page-link:contains(›)"
+    override fun latestUpdatesNextPageSelector(): String =
+        "ul.pagination li a.page-link:contains(›)"
 
     override fun latestUpdatesFromElement(element: Element): SAnime {
         val anime = SAnime.create()
@@ -201,7 +210,8 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         return anime
     }
 
-    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/most_recent/page/$page", headers)
+    override fun latestUpdatesRequest(page: Int): Request =
+        GET("$baseUrl/most_recent/page/$page", headers)
 
     override fun latestUpdatesSelector(): String = "div#postList div.col-xl-2 a"
 
@@ -215,6 +225,7 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         CategoryFilter(),
         GenreFilter(),
     )
+
     private class SectionFilter : PairFilter(
         "اقسام الموقع",
         arrayOf(
@@ -240,6 +251,7 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             Pair("البرامج التليفزيونية الاعلي مشاهدة", "tvshows_top_views"),
         ),
     )
+
     private class CategoryFilter : PairFilter(
         "النوع",
         arrayOf(
@@ -249,10 +261,27 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             Pair("انمى", "anime-cats"),
         ),
     )
+
     private class GenreFilter : SingleFilter(
         "التصنيف",
         arrayOf(
-            "Action", "Adventure", "Animation", "Western", "Sport", "Short", "Documentary", "Fantasy", "Sci-fi", "Romance", "Comedy", "Family", "Drama", "Thriller", "Crime", "Horror", "Biography",
+            "Action",
+            "Adventure",
+            "Animation",
+            "Western",
+            "Sport",
+            "Short",
+            "Documentary",
+            "Fantasy",
+            "Sci-fi",
+            "Romance",
+            "Comedy",
+            "Family",
+            "Drama",
+            "Thriller",
+            "Crime",
+            "Horror",
+            "Biography",
         ).sortedArray(),
     )
 
@@ -260,6 +289,7 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         AnimeFilter.Select<String>(displayName, vals) {
         fun toUriPart() = vals[state]
     }
+
     open class PairFilter(displayName: String, private val vals: Array<Pair<String, String>>) :
         AnimeFilter.Select<String>(displayName, vals.map { it.first }.toTypedArray()) {
         fun toUriPart() = vals[state].second

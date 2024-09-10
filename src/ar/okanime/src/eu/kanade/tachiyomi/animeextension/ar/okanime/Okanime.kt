@@ -65,7 +65,11 @@ class Okanime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun latestUpdatesNextPageSelector() = "ul.pagination > li:last-child:not(.disabled)"
 
     // =============================== Search ===============================
-    override suspend fun getSearchAnime(page: Int, query: String, filters: AnimeFilterList): AnimesPage {
+    override suspend fun getSearchAnime(
+        page: Int,
+        query: String,
+        filters: AnimeFilterList,
+    ): AnimesPage {
         return if (query.startsWith(PREFIX_SEARCH)) { // URL intent handler
             val id = query.removePrefix(PREFIX_SEARCH)
             client.newCall(GET("$baseUrl/anime/$id"))
@@ -142,7 +146,8 @@ class Okanime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     // ============================ Video Links =============================
     override fun videoListParse(response: Response): List<Video> {
-        val hosterSelection = preferences.getStringSet(PREF_HOSTER_SELECTION_KEY, PREF_HOSTER_SELECTION_DEFAULT)!!
+        val hosterSelection =
+            preferences.getStringSet(PREF_HOSTER_SELECTION_KEY, PREF_HOSTER_SELECTION_DEFAULT)!!
         return response.asJsoup()
             .select("a.ep-link")
             .parallelCatchingFlatMapBlocking { element ->
@@ -166,24 +171,33 @@ class Okanime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private val voeExtractor by lazy { VoeExtractor(client) }
     private val vidBomExtractor by lazy { VidBomExtractor(client) }
 
-    private fun extractVideosFromUrl(url: String, quality: String, selection: Set<String>): List<Video> {
+    private fun extractVideosFromUrl(
+        url: String,
+        quality: String,
+        selection: Set<String>,
+    ): List<Video> {
         return when {
             "https://doo" in url && "/e/" in url && selection.contains("Dood") -> {
                 doodExtractor.videoFromUrl(url, "DoodStream - $quality")
                     ?.let(::listOf)
             }
+
             "mp4upload" in url && selection.contains("Mp4upload") -> {
                 mp4uploadExtractor.videosFromUrl(url, headers)
             }
+
             "ok.ru" in url && selection.contains("Okru") -> {
                 okruExtractor.videosFromUrl(url)
             }
+
             "voe.sx" in url && selection.contains("Voe") -> {
                 voeExtractor.videosFromUrl(url)
             }
+
             VID_BOM_DOMAINS.any(url::contains) && selection.contains("VidBom") -> {
                 vidBomExtractor.videosFromUrl(url)
             }
+
             else -> null
         }.orEmpty()
     }
@@ -251,7 +265,8 @@ class Okanime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
         private const val PREF_HOSTER_SELECTION_KEY = "pref_hoster_selection"
         private const val PREF_HOSTER_SELECTION_TITLE = "Enable/Disable hosts"
-        private val PREF_HOSTER_SELECTION_ENTRIES = arrayOf("Dood", "Voe", "Mp4upload", "VidBom", "Okru")
+        private val PREF_HOSTER_SELECTION_ENTRIES =
+            arrayOf("Dood", "Voe", "Mp4upload", "VidBom", "Okru")
         private val PREF_HOSTER_SELECTION_DEFAULT by lazy { PREF_HOSTER_SELECTION_ENTRIES.toSet() }
     }
 }

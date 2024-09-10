@@ -97,7 +97,9 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
-        val iframe = "https://akw-cdn1.link/watch" + document.select("a.link-show").attr("href").substringAfter("watch") + "/" + document.ownerDocument()!!.select("input#page_id").attr("value")
+        val iframe = "https://akw-cdn1.link/watch" + document.select("a.link-show").attr("href")
+            .substringAfter("watch") + "/" + document.ownerDocument()!!.select("input#page_id")
+            .attr("value")
         val referer = response.request.url.toString()
         val refererHeaders = Headers.headersOf("referer", referer)
         val iframeResponse = client.newCall(GET(iframe, refererHeaders))
@@ -108,7 +110,11 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun videoListSelector() = "source"
 
     override fun videoFromElement(element: Element): Video {
-        return Video(element.attr("src").replace("https", "http"), element.attr("size") + "p", element.attr("src").replace("https", "http"))
+        return Video(
+            element.attr("src").replace("https", "http"),
+            element.attr("size") + "p",
+            element.attr("src").replace("https", "http"),
+        )
     }
 
     override fun List<Video>.sort(): List<Video> {
@@ -143,7 +149,8 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun searchAnimeNextPageSelector(): String = "ul.pagination li.page-item a[rel=next]"
 
-    override fun searchAnimeSelector(): String = "div.widget div.widget-body div.col-lg-auto div.entry-box div.entry-image a.box"
+    override fun searchAnimeSelector(): String =
+        "div.widget div.widget-body div.col-lg-auto div.entry-box div.entry-image a.box"
 
     override fun searchAnimeRequest(page: Int, query: String, filters: AnimeFilterList): Request {
         val url = if (query.isNotBlank()) {
@@ -182,7 +189,9 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         val anime = SAnime.create()
         // anime.thumbnail_url = document.select("div.container div div a picture > img.img-fluid").attr("data-src")
         anime.title = document.select("picture > img.img-fluid").attr("alt")
-        anime.genre = document.select("div.font-size-16.d-flex.align-items-center.mt-3 a.badge, span.badge-info, span:contains(جودة الفيلم), span:contains(انتاج)").joinToString(", ") { it.text().replace("جودة الفيلم : ", "") }
+        anime.genre =
+            document.select("div.font-size-16.d-flex.align-items-center.mt-3 a.badge, span.badge-info, span:contains(جودة الفيلم), span:contains(انتاج)")
+                .joinToString(", ") { it.text().replace("جودة الفيلم : ", "") }
         anime.author = document.select("span:contains(انتاج)").text().replace("انتاج : ", "")
         anime.description = document.select("div.widget:contains(قصة )").text()
         anime.status = SAnime.COMPLETED
@@ -193,7 +202,8 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun latestUpdatesNextPageSelector(): String = throw UnsupportedOperationException()
 
-    override fun latestUpdatesFromElement(element: Element): SAnime = throw UnsupportedOperationException()
+    override fun latestUpdatesFromElement(element: Element): SAnime =
+        throw UnsupportedOperationException()
 
     override fun latestUpdatesRequest(page: Int): Request = throw UnsupportedOperationException()
 
@@ -222,12 +232,16 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private class QualityFilter(vals: Array<Pair<String?, String>>) : UriPartFilter("الدقة", vals)
     private class TypeFilter(vals: Array<Pair<String?, String>>) : UriPartFilter("النوع", vals)
     private class SectionSFilter(vals: Array<Pair<String?, String>>) : UriPartFilter("القسم", vals)
-    private class CategorySFilter(vals: Array<Pair<String?, String>>) : UriPartFilter("التصنيف", vals)
+    private class CategorySFilter(vals: Array<Pair<String?, String>>) :
+        UriPartFilter("التصنيف", vals)
+
     private class RatingSFilter(vals: Array<Pair<String?, String>>) : UriPartFilter("التقييم", vals)
+
     private fun getTypeFilter(): Array<Pair<String?, String>> = arrayOf(
         Pair("movies", "افلام"),
         Pair("series", "مسلسلات"),
     )
+
     private fun getSectionFilter(): Array<Pair<String?, String>> = arrayOf(
         Pair("0", "الكل"),
         Pair("movie", "افلام"),

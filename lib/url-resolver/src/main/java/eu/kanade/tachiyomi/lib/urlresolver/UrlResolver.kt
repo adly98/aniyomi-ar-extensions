@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.lib.universalextractor
+package eu.kanade.tachiyomi.lib.urlresolver
 
 import android.annotation.SuppressLint
 import android.app.Application

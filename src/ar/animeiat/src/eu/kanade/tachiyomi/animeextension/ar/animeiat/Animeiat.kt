@@ -143,9 +143,11 @@ class Animeiat : ConfigurableAnimeSource, AnimeHttpSource() {
                     is TypeCategoryList -> {
                         type = getTypeFilterList()[filter.state].query
                     }
+
                     is StatCategoryList -> {
                         status = getStatFilterList()[filter.state].query
                     }
+
                     else -> {}
                 }
             }
@@ -169,7 +171,8 @@ class Animeiat : ConfigurableAnimeSource, AnimeHttpSource() {
         return AnimesPage(animeList, hasNextPage)
     }
 
-    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/home/sticky-episodes?page=$page")
+    override fun latestUpdatesRequest(page: Int): Request =
+        GET("$baseUrl/home/sticky-episodes?page=$page")
 
     // ============================== filters ==============================
     override fun getFilterList() = AnimeFilterList(
@@ -177,8 +180,12 @@ class Animeiat : ConfigurableAnimeSource, AnimeHttpSource() {
         TypeCategoryList(typeFilterList),
         StatCategoryList(statFilterList),
     )
-    private class TypeCategoryList(categories: Array<String>) : AnimeFilter.Select<String>("النوع", categories)
-    private class StatCategoryList(categories: Array<String>) : AnimeFilter.Select<String>("الحالة", categories)
+
+    private class TypeCategoryList(categories: Array<String>) :
+        AnimeFilter.Select<String>("النوع", categories)
+
+    private class StatCategoryList(categories: Array<String>) :
+        AnimeFilter.Select<String>("الحالة", categories)
 
     private data class CatUnit(val name: String, val query: String)
 
@@ -192,6 +199,7 @@ class Animeiat : ConfigurableAnimeSource, AnimeHttpSource() {
         CatUnit("اونا", "ona"),
         CatUnit("حلقة خاصة", "special"),
     )
+
     private fun getStatFilterList() = listOf(
         CatUnit("اختر", ""),
         CatUnit("جارى رفعة", "uploading"),

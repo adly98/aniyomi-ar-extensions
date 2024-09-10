@@ -24,7 +24,6 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import java.lang.Exception
 
 class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
@@ -71,6 +70,7 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     name = "مشاهدة"
                 }.let(::listOf)
             }
+
             else -> {
                 seasons.flatMap {
                     val season = it.text()
@@ -78,7 +78,12 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                         .add("season", it.attr("data-season"))
                         .add("post_id", it.attr("data-id"))
                         .build()
-                    val req = client.newCall(POST("$baseUrl/wp-content/themes/Elshaikh2021/Ajaxat/Single/Episodes.php", body = body)).execute().asJsoup()
+                    val req = client.newCall(
+                        POST(
+                            "$baseUrl/wp-content/themes/Elshaikh2021/Ajaxat/Single/Episodes.php",
+                            body = body,
+                        ),
+                    ).execute().asJsoup()
                     req.select(episodeListSelector()).map(::episodeFromElement).map { ep ->
                         ep.name = "$season: ${ep.name}"
                         ep
@@ -124,8 +129,12 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                 val videoUrl = iframeResponse.selectFirst("source")!!.attr("src")
                 listOf(Video(videoUrl, quality, videoUrl))
             }
+
             "dood" in url || "d0o0d" in url -> doodExtractor.videosFromUrl(url)
-            "vidmoly" in url || "wish" in url || "filemoon" in url -> streamwishExtractor.videosFromUrl(url)
+            "vidmoly" in url || "wish" in url || "filemoon" in url -> streamwishExtractor.videosFromUrl(
+                url,
+            )
+
             "voe.sx" in url -> voeExtractor.videosFromUrl(url)
             else -> null
         } ?: emptyList()
@@ -170,7 +179,8 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         title = document.selectFirst("div.BreadCrumbs ol li:last-child a span")!!
             .text()
             .replace(" مترجم", "").replace("فيلم ", "")
-        genre = document.select("div.MetaTermsInfo  > li:contains(النوع) > a").eachText().joinToString()
+        genre =
+            document.select("div.MetaTermsInfo  > li:contains(النوع) > a").eachText().joinToString()
         description = document.select("div.StoryLine p").last()!!.text()
         status = when {
             document.location().contains("/selary/") -> SAnime.UNKNOWN
@@ -198,20 +208,47 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             Pair("افلام اسيوية", "asian-movies/"),
             Pair("افلام هندى", "indian-movies/"),
             Pair("افلام تركية", "turkish-movies/"),
-            Pair("افلام انيميشن", "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d8%a7%d9%86%d9%8a%d9%85%d9%8a%d8%b4%d9%86/"),
-            Pair("افلام كلاسيكيه", "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d9%83%d9%84%d8%a7%d8%b3%d9%8a%d9%83%d9%8a%d9%87/"),
-            Pair("افلام مدبلجة", "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d9%85%d8%af%d8%a8%d9%84%d8%ac%d8%a9/"),
+            Pair(
+                "افلام انيميشن",
+                "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d8%a7%d9%86%d9%8a%d9%85%d9%8a%d8%b4%d9%86/",
+            ),
+            Pair(
+                "افلام كلاسيكيه",
+                "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d9%83%d9%84%d8%a7%d8%b3%d9%8a%d9%83%d9%8a%d9%87/",
+            ),
+            Pair(
+                "افلام مدبلجة",
+                "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d9%85%d8%af%d8%a8%d9%84%d8%ac%d8%a9/",
+            ),
             Pair("Netfilx افلام", "netfilx/افلام-netfilx/"),
             Pair("مسلسلات عربي", "arabic-series/"),
             Pair("مسلسلات اجنبي", "foreign-series/"),
             Pair("مسلسلات تركية", "turkish-series-1/"),
-            Pair("مسلسلات كورية", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d9%83%d9%88%d8%b1%d9%8a%d9%87/"),
-            Pair("برامج تلفزيونية", "%d8%a8%d8%b1%d8%a7%d9%85%d8%ac-%d8%aa%d9%84%d9%81%d8%b2%d9%8a%d9%88%d9%86%d9%8a%d8%a9/"),
+            Pair(
+                "مسلسلات كورية",
+                "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d9%83%d9%88%d8%b1%d9%8a%d9%87/",
+            ),
+            Pair(
+                "برامج تلفزيونية",
+                "%d8%a8%d8%b1%d8%a7%d9%85%d8%ac-%d8%aa%d9%84%d9%81%d8%b2%d9%8a%d9%88%d9%86%d9%8a%d8%a9/",
+            ),
             Pair("مسلسلات كرتون", "cartoon-series/"),
-            Pair("مسلسلات رمضان 2019", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2019/"),
-            Pair("مسلسلات رمضان 2020", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2020-hd/"),
-            Pair("مسلسلات رمضان 2021", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2021/"),
-            Pair("مسلسلات رمضان 2022", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2022/"),
+            Pair(
+                "مسلسلات رمضان 2019",
+                "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2019/",
+            ),
+            Pair(
+                "مسلسلات رمضان 2020",
+                "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2020-hd/",
+            ),
+            Pair(
+                "مسلسلات رمضان 2021",
+                "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2021/",
+            ),
+            Pair(
+                "مسلسلات رمضان 2022",
+                "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2022/",
+            ),
             Pair("مسلسلات رمضان 2023", "ramadan-series-2023/"),
             Pair("مسلسلات رمضان 2024", "ramadan-series-2024/"),
             Pair("Netfilx مسلسلات", "netfilx/%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-netfilz/"),
@@ -220,7 +257,9 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     // =============================== Latest ===============================
     override fun latestUpdatesNextPageSelector(): String = throw UnsupportedOperationException()
-    override fun latestUpdatesFromElement(element: Element): SAnime = throw UnsupportedOperationException()
+    override fun latestUpdatesFromElement(element: Element): SAnime =
+        throw UnsupportedOperationException()
+
     override fun latestUpdatesRequest(page: Int): Request = throw UnsupportedOperationException()
     override fun latestUpdatesSelector(): String = throw UnsupportedOperationException()
 

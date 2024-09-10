@@ -24,7 +24,7 @@ import org.jsoup.nodes.Element
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
-class FastMovies: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
+class FastMovies : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override val name = "Fast Movies"
 
@@ -65,6 +65,7 @@ class FastMovies: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             setUrlWithoutDomain(url)
         }
     }
+
     override fun episodeListParse(response: Response): List<SEpisode> {
         val doc = response.asJsoup()
         val seasons = doc.select(seasonListSelector())
@@ -81,19 +82,26 @@ class FastMovies: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             }.sortedByDescending { it.episode_number }
         }
     }
+
     override fun episodeListSelector(): String = ".list-group .episode-link"
     private fun seasonListSelector(): String = ".season-image-container"
+
     // =========================== Anime Details ============================
     override fun animeDetailsParse(document: Document): SAnime {
-        val infoElement = document.selectFirst("script:containsData(animateText), script:containsData(typeWriter)")!!.data()
+        val infoElement =
+            document.selectFirst("script:containsData(animateText), script:containsData(typeWriter)")!!
+                .data()
         return SAnime.create().apply {
             thumbnail_url = document.select(".card img").attr("src")
             description = when {
-                "animateText" in infoElement -> infoElement.substringAfter("animateText('overview', '").substringBefore("',")
+                "animateText" in infoElement -> infoElement.substringAfter("animateText('overview', '")
+                    .substringBefore("',")
+
                 else -> infoElement.substringAfter("const text = \"").substringBefore("\"")
             }
         }
     }
+
     // ============================ Video Links =============================
     override fun videoFromElement(element: Element) = throw UnsupportedOperationException()
     override fun videoListSelector(): String = ".button-group .btn-custom"
@@ -118,6 +126,7 @@ class FastMovies: ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             }
         }
     }
+
     override fun List<Video>.sort(): List<Video> {
         val quality = preferences.getString("preferred_quality", "1080")!!
         return sortedWith(

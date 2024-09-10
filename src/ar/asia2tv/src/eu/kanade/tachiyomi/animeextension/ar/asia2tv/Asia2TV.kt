@@ -27,7 +27,6 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import java.lang.Exception
 
 class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
@@ -48,7 +47,8 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun popularAnimeNextPageSelector(): String = "div.nav-links a.next"
 
-    override fun popularAnimeRequest(page: Int): Request = GET("$baseUrl/category/asian-drama/page/$page/") // page/$page
+    override fun popularAnimeRequest(page: Int): Request =
+        GET("$baseUrl/category/asian-drama/page/$page/") // page/$page
 
     override fun popularAnimeFromElement(element: Element): SAnime {
         val anime = SAnime.create()
@@ -109,13 +109,13 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             "youdbox" in url || "yodbox" in url -> {
                 client.newCall(GET(url)).execute().let {
                     val doc = it.asJsoup()
-                    val videoUrl = doc.selectFirst("source")?.attr("abs:src")
-                    when (videoUrl) {
+                    when (val videoUrl = doc.selectFirst("source")?.attr("abs:src")) {
                         null -> emptyList()
                         else -> listOf(Video(videoUrl, "Yodbox: mirror", videoUrl))
                     }
                 }
             }
+
             else -> null
         } ?: emptyList()
     }
@@ -164,17 +164,22 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     is TypeList -> {
                         if (filter.state > 0) {
                             val genreN = getTypeList()[filter.state].query
-                            val genreUrl = "$baseUrl/category/asian-drama/$genreN/page/$page/".toHttpUrlOrNull()!!.newBuilder()
+                            val genreUrl =
+                                "$baseUrl/category/asian-drama/$genreN/page/$page/".toHttpUrlOrNull()!!
+                                    .newBuilder()
                             return GET(genreUrl.toString(), headers)
                         }
                     }
+
                     is StatusList -> {
                         if (filter.state > 0) {
                             val statusN = getStatusList()[filter.state].query
-                            val statusUrl = "$baseUrl/$statusN/page/$page/".toHttpUrlOrNull()!!.newBuilder()
+                            val statusUrl =
+                                "$baseUrl/$statusN/page/$page/".toHttpUrlOrNull()!!.newBuilder()
                             return GET(statusUrl.toString(), headers)
                         }
                     }
+
                     else -> {}
                 }
             }
@@ -189,7 +194,8 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         anime.title = document.select("h1 span.title").text()
         anime.thumbnail_url = document.select("div.single-thumb-bg > img").attr("src")
         anime.description = document.select("div.getcontent p").text()
-        anime.genre = document.select("div.box-tags a, li:contains(البلد) a").joinToString(", ") { it.text() }
+        anime.genre =
+            document.select("div.box-tags a, li:contains(البلد) a").joinToString(", ") { it.text() }
 
         return anime
     }
@@ -197,7 +203,8 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // =============================== Latest ===============================
     override fun latestUpdatesNextPageSelector(): String = throw UnsupportedOperationException()
 
-    override fun latestUpdatesFromElement(element: Element): SAnime = throw UnsupportedOperationException()
+    override fun latestUpdatesFromElement(element: Element): SAnime =
+        throw UnsupportedOperationException()
 
     override fun latestUpdatesRequest(page: Int): Request = throw UnsupportedOperationException()
 
@@ -212,12 +219,16 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     private class TypeList(types: Array<String>) : AnimeFilter.Select<String>("نوع الدراما", types)
     private data class Type(val name: String, val query: String)
+
     private val typesName = getTypeList().map {
         it.name
     }.toTypedArray()
 
-    private class StatusList(statuse: Array<String>) : AnimeFilter.Select<String>("حالة الدراما", statuse)
+    private class StatusList(statuse: Array<String>) :
+        AnimeFilter.Select<String>("حالة الدراما", statuse)
+
     private data class Status(val name: String, val query: String)
+
     private val statusesName = getStatusList().map {
         it.name
     }.toTypedArray()
@@ -237,7 +248,7 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         Status("الدراما المكتملة", "completed-dramas"),
         Status("الدراما القادمة", "status/upcoming-drama"),
 
-    )
+        )
 
     // ============================== Settings ==============================
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
@@ -261,7 +272,15 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     // ============================= Utilities ==============================
     companion object {
-        private val STREAM_WISH_DOMAINS by lazy { listOf("wishfast", "fviplions", "filelions", "streamwish", "dwish") }
+        private val STREAM_WISH_DOMAINS by lazy {
+            listOf(
+                "wishfast",
+                "fviplions",
+                "filelions",
+                "streamwish",
+                "dwish",
+            )
+        }
         private val VID_BOM_DOMAINS by lazy { listOf("vidbam", "vadbam", "vidbom", "vidbm") }
     }
 }

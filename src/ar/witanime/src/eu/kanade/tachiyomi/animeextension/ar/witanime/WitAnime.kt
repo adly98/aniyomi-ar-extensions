@@ -43,7 +43,8 @@ class WitAnime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     }
 
     // ============================== Popular ===============================
-    override fun popularAnimeSelector() = "div.anime-list-content div.row div.anime-card-poster div.ehover6"
+    override fun popularAnimeSelector() =
+        "div.anime-list-content div.row div.anime-card-poster div.ehover6"
 
     override fun popularAnimeNextPageSelector() = "ul.pagination a.next"
 
@@ -69,7 +70,8 @@ class WitAnime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun latestUpdatesFromElement(element: Element) = popularAnimeFromElement(element)
 
     // =============================== Search ===============================
-    override fun searchAnimeRequest(page: Int, query: String, filters: AnimeFilterList) = GET("$baseUrl/?search_param=animes&s=$query")
+    override fun searchAnimeRequest(page: Int, query: String, filters: AnimeFilterList) =
+        GET("$baseUrl/?search_param=animes&s=$query")
 
     override fun searchAnimeFromElement(element: Element) = popularAnimeFromElement(element)
     override fun searchAnimeNextPageSelector() = popularAnimeNextPageSelector()
@@ -151,14 +153,17 @@ class WitAnime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     else -> soraPlayExtractor.videosFromUrl(url, headers)
                 }
             }
+
             url.contains("dood") -> {
                 doodExtractor.videoFromUrl(url, "Dood mirror")
                     ?.let(::listOf)
             }
+
             url.contains("4shared") -> {
                 sharedExtractor.videosFromUrl(url)
                     ?.let(::listOf)
             }
+
             url.contains("dropbox") -> {
                 listOf(Video(url, "Dropbox mirror", url))
             }
@@ -166,15 +171,19 @@ class WitAnime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             url.contains("dailymotion") -> {
                 dailymotionExtractor.videosFromUrl(url)
             }
+
             url.contains("ok.ru") -> {
                 okruExtractor.videosFromUrl(url)
             }
+
             url.contains("mp4upload.com") -> {
                 mp4uploadExtractor.videosFromUrl(url, headers)
             }
+
             VIDBOM_REGEX.containsMatchIn(url) -> {
                 vidBomExtractor.videosFromUrl(url)
             }
+
             else -> null
         } ?: emptyList()
     }
@@ -183,6 +192,7 @@ class WitAnime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         val newHeaders = when {
             url.contains("soraplay") ->
                 super.headersBuilder().set("referer", "https://yonaplay.org").build()
+
             else -> headers
         }
         val doc = client.newCall(GET(url, newHeaders)).execute()

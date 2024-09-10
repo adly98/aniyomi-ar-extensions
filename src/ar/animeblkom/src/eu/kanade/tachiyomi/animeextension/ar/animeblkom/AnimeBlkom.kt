@@ -39,7 +39,8 @@ class AnimeBlkom : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     }
 
     // ============================== Popular ===============================
-    override fun popularAnimeRequest(page: Int) = GET("$baseUrl/animes-list/?sort_by=rate&page=$page", headers)
+    override fun popularAnimeRequest(page: Int) =
+        GET("$baseUrl/animes-list/?sort_by=rate&page=$page", headers)
 
     override fun popularAnimeSelector() = "div.contents div.poster > a"
 
@@ -57,9 +58,11 @@ class AnimeBlkom : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         val newH = headers.newBuilder().add("x-requested-with", "XMLHttpRequest").build()
         return GET("$baseUrl/?page=$page", newH)
     }
+
     override fun latestUpdatesSelector(): String = "div.recent-episode > a"
 
-    override fun latestUpdatesFromElement(element: Element): SAnime = popularAnimeFromElement(element)
+    override fun latestUpdatesFromElement(element: Element): SAnime =
+        popularAnimeFromElement(element)
 
     override fun latestUpdatesNextPageSelector(): String = "a"
 
@@ -94,13 +97,14 @@ class AnimeBlkom : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         genre = document.select("p.genres a").joinToString { it.text() }
         description = document.selectFirst("div.story p, div.story")?.text()
         author = document.selectFirst("div:contains(الاستديو) span > a")?.text()
-        status = document.selectFirst("div.info-table div:contains(حالة الأنمي) span.info")?.text()?.let {
-            when {
-                it.contains("مستمر") -> SAnime.ONGOING
-                it.contains("مكتمل") -> SAnime.COMPLETED
-                else -> null
-            }
-        } ?: SAnime.UNKNOWN
+        status = document.selectFirst("div.info-table div:contains(حالة الأنمي) span.info")?.text()
+            ?.let {
+                when {
+                    it.contains("مستمر") -> SAnime.ONGOING
+                    it.contains("مكتمل") -> SAnime.COMPLETED
+                    else -> null
+                }
+            } ?: SAnime.UNKNOWN
         artist = document.selectFirst("div:contains(المخرج) > span.info")?.text()
     }
 
@@ -156,6 +160,7 @@ class AnimeBlkom : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     .asJsoup()
                 videoDoc.select(videoListSelector()).map(::videoFromElement)
             }
+
             "ok.ru" in url -> okruExtractor.videosFromUrl(url)
             "mp4upload" in url -> mp4uploadExtractor.videosFromUrl(url, headers)
             else -> emptyList()
@@ -179,6 +184,7 @@ class AnimeBlkom : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     private class TypeList(types: Array<String>) : AnimeFilter.Select<String>("نوع الأنمي", types)
     private data class Type(val name: String, val query: String)
+
     private val typesName = getTypeList().map {
         it.name
     }.toTypedArray()

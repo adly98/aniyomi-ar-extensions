@@ -202,7 +202,8 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
         return sortedWith(
             compareBy { video ->
-                val videoQualityFiltered = video.quality.substringBefore("[").filter { it.isDigit() }
+                val videoQualityFiltered =
+                    video.quality.substringBefore("[").filter { it.isDigit() }
                 val videoQuality = if (videoQualityFiltered.isBlank()) {
                     Int.MAX_VALUE
                 } else {

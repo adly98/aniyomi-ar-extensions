@@ -107,39 +107,49 @@ class AnimeLek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     Video(it.url, "${it.name}: ${it.quality}", it.url, headers = newH)
                 }
             }
+
             "iframe" in url -> {
                 return multiServers.extractedUrls(url).parallelCatchingFlatMapBlocking {
                     extractVideos(it.url, it.name, it.quality)
                 }
             }
+
             "ok.ru" in url -> {
                 okRuExtractor.videosFromUrl(url)
             }
+
             "vadbam" in server -> {
                 val newH = headers.newBuilder().add("Referer", baseUrl).build()
                 vidBomExtractor.videosFromUrl(url, newH)
             }
+
             "dood" in server -> {
                 dooDExtractor.videoFromUrl(url, "Dood: ${customQuality ?: "Mirror"}")?.let(::listOf)
                     ?: emptyList()
             }
+
             "mp4" in server -> {
                 mp4uploadExtractor.videosFromUrl(url, headers)
             }
+
             "upstream" in server || "lulustream" in server || "streamwish" in server || "vidhide" in server -> {
                 streamWishExtractor.videosFromUrl(url, server)
             }
+
             "mixdrop" in server -> {
                 mixDropExtractor.videosFromUrl(url, customQuality?.let { "$it " } ?: "")
             }
+
             "streamtape" in server -> {
                 streamTapeExtractor.videosFromUrl(url)
             }
+
             "krakenfiles" in server -> {
                 val req = client.newCall(GET(url)).execute().asJsoup()
                 val source = req.select("source").attr("src")
                 Video(source, "Kraken: ${customQuality ?: "Mirror"}", source).let(::listOf)
             }
+
             else -> emptyList()
         }
     }
@@ -156,7 +166,8 @@ class AnimeLek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun searchAnimeSelector() = "div.anime-list-content div.anime-card-container"
 
-    override fun searchAnimeRequest(page: Int, query: String, filters: AnimeFilterList) = GET("$baseUrl/search/?s=$query&page=$page")
+    override fun searchAnimeRequest(page: Int, query: String, filters: AnimeFilterList) =
+        GET("$baseUrl/search/?s=$query&page=$page")
 
     // =========================== Anime Details ============================
     override fun animeDetailsParse(document: Document): SAnime {
@@ -227,6 +238,7 @@ class AnimeLek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         private const val PREF_QUALITY_KEY = "preferred_quality"
         private const val PREF_QUALITY_TITLE = "Preferred quality"
         private const val PREF_QUALITY_DEFAULT = "720p"
-        private val PREF_QUALITY_ENTRIES = arrayOf("1080p", "720p", "480p", "360p", "Doodstream", "StreamTape")
+        private val PREF_QUALITY_ENTRIES =
+            arrayOf("1080p", "720p", "480p", "360p", "Doodstream", "StreamTape")
     }
 }

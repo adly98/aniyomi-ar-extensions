@@ -22,7 +22,8 @@ class WebViewResolver(private val globalHeaders: Headers) {
         val latch = CountDownLatch(2)
         var webView: WebView? = null
         val result = Result("", "")
-        val headers = origRequestheader.toMultimap().mapValues { it.value.getOrNull(0) ?: "" }.toMutableMap()
+        val headers =
+            origRequestheader.toMultimap().mapValues { it.value.getOrNull(0) ?: "" }.toMutableMap()
 
         handler.post {
             val webview = WebView(context)

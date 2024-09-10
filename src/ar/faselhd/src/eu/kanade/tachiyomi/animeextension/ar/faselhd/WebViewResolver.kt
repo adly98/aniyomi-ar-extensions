@@ -13,7 +13,7 @@ import uy.kohesive.injekt.injectLazy
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-class WebViewResolver() {
+class WebViewResolver {
     private val context: Application by injectLazy()
     private val handler by lazy { Handler(Looper.getMainLooper()) }
 
@@ -22,7 +22,8 @@ class WebViewResolver() {
         val latch = CountDownLatch(1)
         var webView: WebView? = null
         var resultUrl = ""
-        val headers = origRequestheader.toMultimap().mapValues { it.value.getOrNull(0) ?: "" }.toMutableMap()
+        val headers =
+            origRequestheader.toMultimap().mapValues { it.value.getOrNull(0) ?: "" }.toMutableMap()
 
         handler.post {
             val webview = WebView(context)

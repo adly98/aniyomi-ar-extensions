@@ -62,11 +62,14 @@ class Animerco : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // =============================== Latest ===============================
     override fun latestUpdatesRequest(page: Int): Request = throw UnsupportedOperationException()
     override fun latestUpdatesSelector(): String = throw UnsupportedOperationException()
-    override fun latestUpdatesFromElement(element: Element): SAnime = throw UnsupportedOperationException()
+    override fun latestUpdatesFromElement(element: Element): SAnime =
+        throw UnsupportedOperationException()
+
     override fun latestUpdatesNextPageSelector(): String = throw UnsupportedOperationException()
 
     // =============================== Search ===============================
-    override fun searchAnimeRequest(page: Int, query: String, filters: AnimeFilterList) = GET("$baseUrl/page/$page/?s=$query")
+    override fun searchAnimeRequest(page: Int, query: String, filters: AnimeFilterList) =
+        GET("$baseUrl/page/$page/?s=$query")
 
     override fun searchAnimeSelector() = popularAnimeSelector()
     override fun searchAnimeFromElement(element: Element) = popularAnimeFromElement(element)
@@ -138,14 +141,15 @@ class Animerco : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         }.reversed()
     }
 
-    private fun episodeFromElement(element: Element, seasonName: String, seasonNum: Int) = SEpisode.create().apply {
-        setUrlWithoutDomain(element.attr("href"))
-        val epText = element.selectFirst("h3")!!.ownText()
-        name = "$seasonName: " + epText
-        val epNum = epText.filter(Char::isDigit)
-        // good luck trying to track this xD
-        episode_number = "$seasonNum.${epNum.padStart(3, '0')}".toFloatOrNull() ?: 1F
-    }
+    private fun episodeFromElement(element: Element, seasonName: String, seasonNum: Int) =
+        SEpisode.create().apply {
+            setUrlWithoutDomain(element.attr("href"))
+            val epText = element.selectFirst("h3")!!.ownText()
+            name = "$seasonName: " + epText
+            val epNum = epText.filter(Char::isDigit)
+            // good luck trying to track this xD
+            episode_number = "$seasonNum.${epNum.padStart(3, '0')}".toFloatOrNull() ?: 1F
+        }
 
     override fun episodeFromElement(element: Element) = throw UnsupportedOperationException()
 
@@ -182,6 +186,7 @@ class Animerco : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                 val newUrl = "https://gdriveplayer.to/embed2.php?link=$url"
                 gdrivePlayerExtractor.videosFromUrl(newUrl, "GdrivePlayer", headers)
             }
+
             "streamtape" in url -> streamTapeExtractor.videoFromUrl(url)?.let(::listOf)
             "4shared" in url -> sharedExtractor.videoFromUrl(url)?.let(::listOf)
             "uqload" in url -> uqloadExtractor.videosFromUrl(url)
@@ -245,8 +250,10 @@ class Animerco : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         private const val PREF_QUALITY_KEY = "preferred_quality"
         private const val PREF_QUALITY_TITLE = "Preferred quality"
         private const val PREF_QUALITY_DEFAULT = "1080"
-        private val PREF_QUALITY_ENTRIES = arrayOf("1080p", "720p", "480p", "360p", "Doodstream", "StreamTape")
-        private val PREF_QUALITY_VALUES = arrayOf("1080", "720", "480", "360", "Doodstream", "StreamTape")
+        private val PREF_QUALITY_ENTRIES =
+            arrayOf("1080p", "720p", "480p", "360p", "Doodstream", "StreamTape")
+        private val PREF_QUALITY_VALUES =
+            arrayOf("1080", "720", "480", "360", "Doodstream", "StreamTape")
 
         private val VIDBOM_DOMAINS = listOf(
             "vidbom.com", "vidbem.com", "vidbm.com", "vedpom.com",

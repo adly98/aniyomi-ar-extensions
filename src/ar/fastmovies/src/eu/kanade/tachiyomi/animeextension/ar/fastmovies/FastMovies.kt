@@ -180,5 +180,4 @@ class FastMovies : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         }
         screen.addPreference(videoQualityPref)
     }
-
 }

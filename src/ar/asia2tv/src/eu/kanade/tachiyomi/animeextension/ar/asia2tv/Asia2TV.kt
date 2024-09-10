@@ -61,7 +61,6 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // ============================== Episodes ==============================
     override fun episodeListSelector() = "div.loop-episode a"
 
-
     override fun episodeListParse(response: Response): List<SEpisode> {
         val episodes = super.episodeListParse(response)
         return episodes.sortedBy { it.name.filter(Char::isDigit).toIntOrNull() }

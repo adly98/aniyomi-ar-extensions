@@ -36,7 +36,7 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
     }
 
-    // Popular
+    // ============================== Popular ===============================
 
     override fun popularAnimeSelector(): String = "div.entry-box-1 div.entry-image a.box"
 
@@ -52,7 +52,8 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun popularAnimeNextPageSelector(): String = "ul.pagination li.page-item a[rel=next]"
 
-    // episodes
+    // ============================== Episodes ==============================
+
     override fun episodeListSelector() = "div.bg-primary2 h2 a"
 
     override fun episodeListParse(response: Response): List<SEpisode> {
@@ -92,7 +93,7 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         return epsStr.filter { it.isDigit() }
     }
 
-    // Video links
+    // ============================ Video Links =============================
 
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
@@ -130,7 +131,7 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun videoUrlParse(document: Document) = throw UnsupportedOperationException()
 
-    // Search
+    // =============================== Search ===============================
 
     override fun searchAnimeFromElement(element: Element): SAnime {
         val anime = SAnime.create()
@@ -175,7 +176,7 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         return GET(url, headers)
     }
 
-    // Anime Details
+    // =========================== Anime Details ============================
 
     override fun animeDetailsParse(document: Document): SAnime {
         val anime = SAnime.create()
@@ -188,7 +189,7 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         return anime
     }
 
-    // Latest
+    // =============================== Latest ===============================
 
     override fun latestUpdatesNextPageSelector(): String = throw UnsupportedOperationException()
 
@@ -198,7 +199,7 @@ class Akwam : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun latestUpdatesSelector(): String = throw UnsupportedOperationException()
 
-    // Filters
+    // ============================ Filters =============================
 
     override fun getFilterList() = AnimeFilterList(
         AnimeFilter.Header("فلترات البحث"),

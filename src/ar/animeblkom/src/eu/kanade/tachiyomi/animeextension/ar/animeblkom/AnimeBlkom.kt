@@ -89,7 +89,7 @@ class AnimeBlkom : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // =========================== Anime Details ============================
     override fun animeDetailsParse(document: Document) = SAnime.create().apply {
         thumbnail_url = document.selectFirst("div.poster img")!!.attr("abs:data-original")
-        title = document.selectFirst("div.name span h1")!!.text()
+        title = document.selectFirst("div.name span h1")!!.text().replace(" (anime)","")
         genre = document.select("p.genres a").joinToString { it.text() }
         description = document.selectFirst("div.story p, div.story")?.text()
         author = document.selectFirst("div:contains(الاستديو) span > a")?.text()

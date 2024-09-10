@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.SharedPreferences
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
-import eu.kanade.tachiyomi.animeextension.ar.animelek.extractors.SharedExtractor
 import eu.kanade.tachiyomi.animesource.ConfigurableAnimeSource
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.SAnime
@@ -80,10 +79,9 @@ class AnimeLek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // ============================ Video Links =============================
     override fun videoListSelector() = "ul#episode-servers li.watch a"
 
-    override fun videoListParse(response: Response) = videosFromElement(response.asJsoup())
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
-        document.select(videoListSelector()).parallelCatchingFlatMapBlocking {
+        return document.select(videoListSelector()).parallelCatchingFlatMapBlocking {
             extractVideos(it.attr("data-ep-url"), it.text())
         }
     }
@@ -92,6 +90,7 @@ class AnimeLek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private val okRuExtractor by lazy { OkruExtractor(client) }
     private val dooDExtractor by lazy { DoodExtractor(client) }
     private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
+    private val streamTapeExtractor by lazy { StreamTapeExtractor(client) }
     private val vidBomExtractor by lazy { VidBomExtractor(client) }
     private val mp4uploadExtractor by lazy { Mp4uploadExtractor(client) }
     private val mixDropExtractor by lazy { MixDropExtractor(client, headers) }
@@ -134,7 +133,7 @@ class AnimeLek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                 mixDropExtractor.videosFromUrl(url, customQuality?.let { "$it " } ?: "")
             }
             "streamtape" in server -> {
-                StreamTapeExtractor(client).videoFromUrl(url)?.let(::listOf)
+                streamTapeExtractor.videosFromUrl(url)
             }
             "krakenfiles" in server -> {
                 val req = client.newCall(GET(url)).execute().asJsoup()

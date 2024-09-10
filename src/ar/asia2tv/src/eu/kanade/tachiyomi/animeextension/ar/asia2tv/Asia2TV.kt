@@ -247,8 +247,7 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         Status("يبث حاليا", "status/ongoing-drama"),
         Status("الدراما المكتملة", "completed-dramas"),
         Status("الدراما القادمة", "status/upcoming-drama"),
-
-        )
+    )
 
     // ============================== Settings ==============================
     override fun setupPreferenceScreen(screen: PreferenceScreen) {

@@ -115,7 +115,7 @@ class Cimaleek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         anime.description = document.select("div.anisc-detail div.film-description div.text").text()
         anime.status = if (document.select("div.anisc-detail div.item-list").text()
                 .contains("افلام")
-        ) SAnime.COMPLETED else SAnime.UNKNOWN
+        ) { SAnime.COMPLETED } else { SAnime.UNKNOWN }
         return anime
     }
 
@@ -164,17 +164,15 @@ class Cimaleek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             }
 
             ".m3u8" in webViewResult.url -> {
-                val subtitleList = if (webViewResult.subtitle.isNotBlank()) Track(
-                    webViewResult.subtitle,
-                    "Arabic",
-                ).let(::listOf) else emptyList()
+                val subtitleList = if (webViewResult.subtitle.isNotBlank()) {
+                    Track(webViewResult.subtitle, "Arabic",).let(::listOf)
+                } else { emptyList() }
                 playlistUtils.extractFromHls(
                     webViewResult.url,
                     videoNameGen = { "${element.text()}: $it" },
                     subtitleList = subtitleList,
                 )
             }
-
             else -> emptyList()
         }
     }

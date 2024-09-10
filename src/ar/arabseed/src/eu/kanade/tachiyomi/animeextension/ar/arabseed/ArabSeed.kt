@@ -79,8 +79,9 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                         .add("post_id", it.attr("data-id"))
                         .build()
                     val req = client.newCall(POST("$baseUrl/wp-content/themes/Elshaikh2021/Ajaxat/Single/Episodes.php", body = body)).execute().asJsoup()
-                    req.select(episodeListSelector()).map(::episodeFromElement).forEach { ep ->
+                    req.select(episodeListSelector()).map(::episodeFromElement).map { ep ->
                         ep.name = "$season: ${ep.name}"
+                        ep
                     }
                 }
             }
@@ -170,7 +171,7 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             .text()
             .replace(" مترجم", "").replace("فيلم ", "")
         genre = document.select("div.MetaTermsInfo  > li:contains(النوع) > a").eachText().joinToString()
-        description = document.selectLast("div.StoryLine p")!!.text()
+        description = document.select("div.StoryLine p").last()!!.text()
         status = when {
             document.location().contains("/selary/") -> SAnime.UNKNOWN
             else -> SAnime.COMPLETED
@@ -213,12 +214,12 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             Pair("مسلسلات رمضان 2022", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2022/"),
             Pair("مسلسلات رمضان 2023", "ramadan-series-2023/"),
             Pair("مسلسلات رمضان 2024", "ramadan-series-2024/"),
-            Pair("Netfilx مسلسلات"", "netfilx/%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-netfilz/"),
+            Pair("Netfilx مسلسلات", "netfilx/%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-netfilz/"),
         ),
     )
 
     // =============================== Latest ===============================
-    override fun latestUpdatesNextPageSelector(): String? = throw UnsupportedOperationException()
+    override fun latestUpdatesNextPageSelector(): String = throw UnsupportedOperationException()
     override fun latestUpdatesFromElement(element: Element): SAnime = throw UnsupportedOperationException()
     override fun latestUpdatesRequest(page: Int): Request = throw UnsupportedOperationException()
     override fun latestUpdatesSelector(): String = throw UnsupportedOperationException()

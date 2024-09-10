@@ -20,7 +20,6 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import java.lang.Exception
 
 class AnimeBlkom : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
@@ -54,10 +53,10 @@ class AnimeBlkom : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun popularAnimeNextPageSelector() = "ul.pagination li.page-item a[rel=next]"
 
     // =============================== Latest =============================== override fun latestUpdatesRequest(page: Int): Request {
+    override fun latestUpdatesRequest(page: Int): Request {
         val newH = headers.newBuilder().add("x-requested-with", "XMLHttpRequest").build()
         return GET("$baseUrl/?page=$page", newH)
     }
-
     override fun latestUpdatesSelector(): String = "div.recent-episode > a"
 
     override fun latestUpdatesFromElement(element: Element): SAnime = popularAnimeFromElement(element)

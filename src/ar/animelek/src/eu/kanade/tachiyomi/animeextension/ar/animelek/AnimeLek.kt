@@ -12,11 +12,16 @@ import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.lib.doodextractor.DoodExtractor
+import eu.kanade.tachiyomi.lib.mixdropextractor.MixDropExtractor
+import eu.kanade.tachiyomi.lib.mp4uploadextractor.Mp4uploadExtractor
+import eu.kanade.tachiyomi.lib.multiservers.MultiServers
 import eu.kanade.tachiyomi.lib.okruextractor.OkruExtractor
 import eu.kanade.tachiyomi.lib.streamtapeextractor.StreamTapeExtractor
+import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
 import eu.kanade.tachiyomi.lib.vidbomextractor.VidBomExtractor
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
+import eu.kanade.tachiyomi.util.parallelCatchingFlatMapBlocking
 import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.nodes.Document
@@ -73,40 +78,71 @@ class AnimeLek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun episodeListParse(response: Response) = super.episodeListParse(response).reversed()
 
     // ============================ Video Links =============================
-    override fun videoListParse(response: Response) = videosFromElement(response.asJsoup())
-
     override fun videoListSelector() = "ul#episode-servers li.watch a"
 
-    private fun videosFromElement(document: Document): List<Video> {
-        val vidbomServers = listOf("vidbam", "vadbam", "vidbom", "vidbm")
+    override fun videoListParse(response: Response) = videosFromElement(response.asJsoup())
+    override fun videoListParse(response: Response): List<Video> {
+        val document = response.asJsoup()
+        document.select(videoListSelector()).parallelCatchingFlatMapBlocking {
+            extractVideos(it.attr("data-ep-url"), it.text())
+        }
+    }
 
-        return document.select(videoListSelector()).mapNotNull { element ->
-            val url = element.attr("data-ep-url")
-            val qualityy = element.text()
+    private val multiServers by lazy { MultiServers(client, headers) }
+    private val okRuExtractor by lazy { OkruExtractor(client) }
+    private val dooDExtractor by lazy { DoodExtractor(client) }
+    private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
+    private val vidBomExtractor by lazy { VidBomExtractor(client) }
+    private val mp4uploadExtractor by lazy { Mp4uploadExtractor(client) }
+    private val mixDropExtractor by lazy { MixDropExtractor(client, headers) }
 
-            when {
-                vidbomServers.any(url::contains) -> {
-                    VidBomExtractor(client).videosFromUrl(url)
+    private fun extractVideos(
+        url: String,
+        server: String,
+        customQuality: String? = null,
+    ): List<Video> {
+        return when {
+            "leech" in server -> {
+                val newH = headers.newBuilder().add("Referer", url).build()
+                return multiServers.extractedUrls(url).map {
+                    Video(it.url, "${it.name}: ${it.quality}", it.url, headers = newH)
                 }
-
-                url.contains("dood") -> {
-                    DoodExtractor(client).videoFromUrl(url, qualityy)
-                        ?.let(::listOf)
-                }
-                url.contains("ok.ru") -> {
-                    OkruExtractor(client).videosFromUrl(url)
-                }
-                url.contains("streamtape") -> {
-                    StreamTapeExtractor(client).videoFromUrl(url)
-                        ?.let(::listOf)
-                }
-                url.contains("4shared") -> {
-                    SharedExtractor(client).videoFromUrl(url, qualityy)
-                        ?.let(::listOf)
-                }
-                else -> null
             }
-        }.flatten()
+            "iframe" in url -> {
+                return multiServers.extractedUrls(url).parallelCatchingFlatMapBlocking {
+                    extractVideos(it.url, it.name, it.quality)
+                }
+            }
+            "ok.ru" in url -> {
+                okRuExtractor.videosFromUrl(url)
+            }
+            "vadbam" in server -> {
+                val newH = headers.newBuilder().add("Referer", baseUrl).build()
+                vidBomExtractor.videosFromUrl(url, newH)
+            }
+            "dood" in server -> {
+                dooDExtractor.videoFromUrl(url, "Dood: ${customQuality ?: "Mirror"}")?.let(::listOf)
+                    ?: emptyList()
+            }
+            "mp4" in server -> {
+                mp4uploadExtractor.videosFromUrl(url, headers)
+            }
+            "upstream" in server || "lulustream" in server || "streamwish" in server || "vidhide" in server -> {
+                streamWishExtractor.videosFromUrl(url, server)
+            }
+            "mixdrop" in server -> {
+                mixDropExtractor.videosFromUrl(url, customQuality?.let { "$it " } ?: "")
+            }
+            "streamtape" in server -> {
+                StreamTapeExtractor(client).videoFromUrl(url)?.let(::listOf)
+            }
+            "krakenfiles" in server -> {
+                val req = client.newCall(GET(url)).execute().asJsoup()
+                val source = req.select("source").attr("src")
+                Video(source, "Kraken: ${customQuality ?: "Mirror"}", source).let(::listOf)
+            }
+            else -> emptyList()
+        }
     }
 
     override fun videoFromElement(element: Element) = throw UnsupportedOperationException()

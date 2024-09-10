@@ -128,6 +128,10 @@ class Okanime : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // ============================== Episodes ==============================
     override fun episodeListSelector() = "div.row div.episode-card div.anime-title a"
 
+    override fun episodeListParse(response: Response): List<SEpisode> {
+        return super.episodeListParse(response).reversed()
+    }
+
     override fun episodeFromElement(element: Element) = SEpisode.create().apply {
         setUrlWithoutDomain(element.attr("href"))
         element.text().also {

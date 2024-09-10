@@ -11,14 +11,14 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
+import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
 import eu.kanade.tachiyomi.lib.doodextractor.DoodExtractor
 import eu.kanade.tachiyomi.lib.mixdropextractor.MixDropExtractor
-import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
+import eu.kanade.tachiyomi.lib.urlresolver.UrlResolver
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
-import eu.kanade.tachiyomi.network.await
 import eu.kanade.tachiyomi.util.asJsoup
-import eu.kanade.tachiyomi.util.parallelCatchingFlatMap
+import eu.kanade.tachiyomi.util.parallelCatchingFlatMapBlocking
 import okhttp3.FormBody
 import okhttp3.Request
 import okhttp3.Response
@@ -54,21 +54,19 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun popularAnimeFromElement(element: Element): SAnime {
         val anime = SAnime.create()
         anime.setUrlWithoutDomain(element.select("a").attr("href"))
-        anime.title = element.select("h1.BottomTitle").text()
+        anime.title = element.select("h1.BottomTitle").text().let { editTitle(it, true) }
         anime.thumbnail_url = element.select("a img").attr("src")
         return anime
     }
 
     // ================================== episodes ==================================
-
     override fun episodeListParse(response: Response): List<SEpisode> {
         val episodes = mutableListOf<SEpisode>()
-        fun episodeExtract(element: Element): SEpisode {
-            val episode = SEpisode.create()
-            episode.setUrlWithoutDomain(element.attr("href"))
-            episode.name = element.attr("title")
-            return episode
+        fun episodeExtract(element: Element) = SEpisode.create().apply {
+            setUrlWithoutDomain(element.attr("href"))
+            name = element.attr("title")
         }
+
         fun addEpisodes(res: Response, final: Boolean = false) {
             val document = res.asJsoup()
             val url = res.request.url.toString()
@@ -77,18 +75,18 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     val episode = episodeFromElement(it)
                     val season = document.select("div.infoBox div.singleTitle").text()
                     val seasonTxt = season.substringAfter("الموسم ").substringBefore(" ")
-                    episode.name = if (season.contains("موسم"))"الموسم $seasonTxt ${episode.name}" else episode.name
+                    episode.name =
+                        if (season.contains("موسم")) "الموسم $seasonTxt ${episode.name}" else episode.name
                     episodes.add(episode)
                 }
             } else if (url.contains("assembly")) {
-                document.select("div.salery-list li.movieItem a").map {
-                    episodes.add(episodeExtract(it))
-                }
+                val assemblySelector = "div.salery-list li.movieItem a"
+                episodes.addAll(document.select(assemblySelector).map(::episodeExtract))
             } else if (url.contains("serie") || url.contains("season")) {
                 if (document.select("div.seasons-list li.movieItem a").isNullOrEmpty()) {
-                    document.select(episodeListSelector()).map {
-                        episodes.add(episodeFromElement(it))
-                    }
+                    episodes.addAll(
+                        document.select(episodeListSelector()).map(::episodeFromElement),
+                    )
                 } else {
                     document.select("div.seasons-list li.movieItem a").map {
                         addEpisodes(client.newCall(GET(it.attr("href"))).execute(), true)
@@ -99,9 +97,10 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     addEpisodes(client.newCall(GET(it.attr("href"))).execute())
                 }
             } else {
-                val episode = SEpisode.create()
-                episode.name = "مشاهدة"
-                episode.setUrlWithoutDomain(url)
+                val episode = SEpisode.create().apply {
+                    name = "مشاهدة"
+                    setUrlWithoutDomain(url)
+                }
                 episodes.add(episode)
             }
             // document.select(episodeListSelector()).map { episodes.add(episodeFromElement(it)) }
@@ -122,53 +121,25 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     // ================================== video urls ==================================
     private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
+    private val doodExtractor by lazy { DoodExtractor(client) }
+    private val mixDropExtractor by lazy { MixDropExtractor(client, headers) }
+    private val urlResolver by lazy { UrlResolver(client) }
 
-    override suspend fun getVideoList(episode: SEpisode): List<Video> {
-        val requestBody = FormBody.Builder().add("View", "1").build()
-
-        val document = client.newCall(POST(baseUrl + episode.url, body = requestBody))
-            .await()
-            .asJsoup()
-        return document.select(videoListSelector()).parallelCatchingFlatMap {
-            val url = it.attr("data-link")
-            extractVideos(url)
-        }
+    override fun videoListParse(response: Response): List<Video> {
+        val requestBody = FormBody.Builder().add("View", 1.toString()).build()
+        val newHeaders = headers.newBuilder().add("referer", "$baseUrl/").build()
+        val newResponse = client.newCall(POST(response.request.url.toString(), headers = newHeaders, body = requestBody)).execute().asJsoup()
+        return newResponse.select(videoListSelector()).parallelCatchingFlatMapBlocking(::extractVideos)
     }
 
-    private fun extractVideos(url: String): List<Video> {
+    private fun extractVideos(link: Element): List<Video> {
+        val url = link.attr("data-link")
         return when {
-            DOOD_REGEX.containsMatchIn(url) -> {
-                DoodExtractor(client).videoFromUrl(url, "Dood mirror")?.let(::listOf)
-            }
-            url.contains("mdbekjwqa") -> {
-                MixDropExtractor(client, headers).videosFromUrl(url)
-            }
-            url.contains("ahvsh") -> {
-                val request = client.newCall(GET(url, headers)).execute().asJsoup()
-                val script = request.selectFirst("script:containsData(sources)")!!.data()
-                val streamLink = Regex("sources:\\s*\\[\\{\\s*\\t*file:\\s*[\"']([^\"']+)").find(script)!!.groupValues[1]
-                val quality = Regex("'qualityLabels'\\s*:\\s*\\{\\s*\".*?\"\\s*:\\s*\"(.*?)\"").find(script)!!.groupValues[1]
-                Video(streamLink, "StreamHide: $quality", streamLink).let(::listOf)
-            }
-            STREAMWISH_REGEX.containsMatchIn(url) -> {
-                streamWishExtractor.videosFromUrl(url)
-            }
-            url.contains("fanakishtuna") -> {
-                val request = client.newCall(GET(url, headers)).execute().asJsoup()
-                val data = request.selectFirst("script:containsData(sources)")!!.data()
-                val streamLink = Regex("sources:\\s*\\[\\{\\s*\\t*file:\\s*[\"']([^\"']+)").find(data)!!.groupValues[1]
-                listOf(Video(streamLink, "Mirror: High Quality", streamLink))
-            }
-            url.contains("uqload") -> {
-                val newURL = url.replace("https://uqload.co/", "https://www.uqload.co/")
-                val request = client.newCall(GET(newURL, headers)).execute().asJsoup()
-                val data = request.selectFirst("script:containsData(sources)")!!.data()
-                val streamLink = data.substringAfter("sources: [\"").substringBefore("\"]")
-                listOf(Video(streamLink, "Uqload: Mirror", streamLink))
-            }
-
-            else -> null
-        } ?: emptyList()
+            "gsfqzmqu" in url || "gsfomqu" in url || "gsfjzmqu" in url || "732eg54de642sa" in url -> streamWishExtractor.videosFromUrl(url)
+            "dood" in url -> doodExtractor.videosFromUrl(url)
+            "mixdrop" in url -> mixDropExtractor.videosFromUrl(url)
+            else -> urlResolver.videosFromUrl(url, headers)
+        }
     }
 
     override fun videoListSelector() = "ul.serversList li"
@@ -176,26 +147,15 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun videoFromElement(element: Element) = throw UnsupportedOperationException()
 
     override fun List<Video>.sort(): List<Video> {
-        val quality = preferences.getString("preferred_quality", "1080p")
-        if (quality != null) {
-            val newList = mutableListOf<Video>()
-            var preferred = 0
-            for (video in this) {
-                if (video.quality == quality) {
-                    newList.add(preferred, video)
-                    preferred++
-                } else {
-                    newList.add(video)
-                }
-            }
-            return newList
-        }
-        return this
+        val quality = preferences.getString("preferred_quality", "1080")!!
+        return sortedWith(
+            compareBy { it.quality.contains(quality) },
+        ).reversed()
     }
 
     override fun videoUrlParse(document: Document) = throw UnsupportedOperationException()
 
-    // ================================== search ==================================
+    // ================================== Search ==================================
 
     override fun searchAnimeNextPageSelector(): String = "div.pagination-two a:contains(›)"
 
@@ -215,6 +175,7 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                             return GET(catUrl, headers)
                         }
                     }
+
                     else -> {}
                 }
             }
@@ -223,19 +184,14 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         return GET(url, headers)
     }
 
-    override fun searchAnimeFromElement(element: Element): SAnime {
-        val anime = SAnime.create()
-        anime.setUrlWithoutDomain(element.select("a").attr("href"))
-        anime.title = element.select("h1.BottomTitle").text()
-        anime.thumbnail_url = element.select("a img").attr("src")
-        return anime
-    }
+    override fun searchAnimeFromElement(element: Element) = popularAnimeFromElement(element)
 
     override fun getFilterList() = AnimeFilterList(
         CategoryList(categoriesName),
     )
 
-    private class CategoryList(categories: Array<String>) : AnimeFilter.Select<String>("الأقسام", categories)
+    private class CategoryList(categories: Array<String>) :
+        AnimeFilter.Select<String>("الأقسام", categories)
 
     private data class CatUnit(val name: String, val query: String)
 
@@ -261,37 +217,57 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         CatUnit("المواسم الكاملة", "season"),
     )
 
-    // ================================== details ==================================
+    // ================================== Anime Details ==================================
 
     override fun animeDetailsParse(document: Document): SAnime {
         val anime = SAnime.create()
         anime.thumbnail_url = document.select("div.single-thumbnail img").attr("src")
-        anime.title = document.select("div.infoBox div.singleTitle").text()
+        anime.title = document.select("div.infoBox div.singleTitle").text().let(::editTitle)
         anime.author = document.select("div.LeftBox li:contains(البلد) a").text()
         anime.artist = document.select("div.LeftBox li:contains(القسم) a").text()
-        anime.genre = document.select("div.LeftBox li:contains(النوع) a, div.LeftBox li:contains(اللغه) a, div.LeftBox li:contains(السنه) a").joinToString(", ") { it.text() }
+        anime.genre =
+            document.select("div.LeftBox li:contains(النوع) a, div.LeftBox li:contains(اللغه) a, div.LeftBox li:contains(السنه) a")
+                .joinToString(", ") { it.text() }
         anime.description = document.select("div.infoBox div.extra-content p").text()
-        anime.status = if (anime.title.contains("كامل") || anime.title.contains("فيلم")) SAnime.COMPLETED else SAnime.ONGOING
+        anime.status =
+            if (anime.title.contains("كامل") || anime.title.contains("فيلم")) SAnime.COMPLETED else SAnime.ONGOING
         return anime
     }
 
-    // ================================== latest ==================================
+    // ================================== Latest ==================================
 
     override fun latestUpdatesSelector(): String = "section.main-section li.movieItem"
 
-    override fun latestUpdatesNextPageSelector(): String = "div.pagination ul.page-numbers li a.next"
+    override fun latestUpdatesNextPageSelector(): String =
+        "div.pagination ul.page-numbers li a.next"
 
     override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/?page=$page/")
 
-    override fun latestUpdatesFromElement(element: Element): SAnime {
-        val anime = SAnime.create()
-        anime.setUrlWithoutDomain(element.select("a").attr("href"))
-        anime.title = element.select("h1.BottomTitle").text()
-        anime.thumbnail_url = element.select("a img").attr("src")
-        return anime
+    override fun latestUpdatesFromElement(element: Element) = popularAnimeFromElement(element)
+
+    // ================================== Utilities ==================================
+    private fun editTitle(title: String, details: Boolean = false): String {
+        val movieRegex = Regex("(?:فيلم|عرض)\\s(.*?)\\s*(?:\\d{4})*\\s*(مترجم|مدبلج)")
+        val seriesRegex = Regex("(?:مسلسل|برنامج|انمي)\\s(.+)\\sالحلقة\\s(\\d+)")
+
+        return when {
+            movieRegex.containsMatchIn(title) -> {
+                val (movieName, type) = movieRegex.find(title)!!.destructured
+                movieName + if (details) " ($type)" else ""
+            }
+            seriesRegex.containsMatchIn(title) -> {
+                val (seriesName, epNum) = seriesRegex.find(title)!!.destructured
+                when {
+                    details -> "$seriesName (ep:$epNum)"
+                    seriesName.contains("الموسم") -> seriesName.split("الموسم")[0].trim()
+                    else -> seriesName
+                }
+            }
+            else -> title
+        }.trim()
     }
 
-    // ================================== preferences ==================================
+    // ================================== Preferences ==================================
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         val videoQualityPref = ListPreference(screen.context).apply {
@@ -310,11 +286,5 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             }
         }
         screen.addPreference(videoQualityPref)
-    }
-
-    // like|kharabnahk
-    companion object {
-        private val DOOD_REGEX = Regex("(do*d(?:stream)?\\.(?:com?|watch|to|s[ho]|cx|la|w[sf]|pm|re|yt|stream))/[de]/([0-9a-zA-Z]+)|ds2play")
-        private val STREAMWISH_REGEX = Regex("ajmidyad|alhayabambi|atabknh[ks]|https://.*\\.sbs/e/")
     }
 }

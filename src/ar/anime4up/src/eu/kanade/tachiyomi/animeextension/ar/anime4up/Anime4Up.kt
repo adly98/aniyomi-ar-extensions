@@ -323,7 +323,7 @@ class Anime4Up : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             thumbnail_url = absUrl("src")
             title = attr("alt") + " (${element.select(".episodes-card-title h3").text()})"
         }
-        setUrlWithoutDomain(element.select(".anime-card-details h3 a").attr("href"))
+        setUrlWithoutDomain(element.select(".anime-card-poster a.overlay").attr("href"))
     }
 
     override fun latestUpdatesNextPageSelector(): String = popularAnimeNextPageSelector()

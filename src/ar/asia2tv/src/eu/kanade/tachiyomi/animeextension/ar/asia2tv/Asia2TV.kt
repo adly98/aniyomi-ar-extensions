@@ -53,7 +53,7 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun popularAnimeFromElement(element: Element): SAnime {
         val anime = SAnime.create()
         anime.setUrlWithoutDomain(element.attr("href"))
-        // anime.thumbnail_url = element.selectFirst("div.image img")!!.attr("data-src")
+        anime.thumbnail_url = element.selectFirst("div.image img")!!.attr("src")
         anime.title = element.attr("title")
         return anime
     }
@@ -61,14 +61,16 @@ class Asia2TV : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // ============================== Episodes ==============================
     override fun episodeListSelector() = "div.loop-episode a"
 
+
     override fun episodeListParse(response: Response): List<SEpisode> {
-        return super.episodeListParse(response).reversed()
+        val episodes = super.episodeListParse(response)
+        return episodes.sortedBy { it.name.filter(Char::isDigit).toIntOrNull() }
     }
 
     override fun episodeFromElement(element: Element): SEpisode {
         val episode = SEpisode.create()
         episode.setUrlWithoutDomain(element.attr("href"))
-        episode.name = element.attr("href").substringAfterLast("-").substringBeforeLast("/") + " : الحلقة"
+        episode.name = element.text().filter { it.isDigit() } + " : الحلقة"
         return episode
     }
 

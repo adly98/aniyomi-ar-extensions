@@ -196,7 +196,7 @@ class ArabAnime : ConfigurableAnimeSource, AnimeHttpSource() {
                         val videoUrl = source.attr("src")
                         if (!videoUrl.contains("static")) {
                             val quality = source.attr("label").let { q ->
-                                if (q.contains("p")) q else q + "p"
+                                if (q.length < 3) q.uppercase() else q + "p"
                             }
                             Video(videoUrl, "$name: $quality", videoUrl)
                         } else {

@@ -1,14 +1,18 @@
 ext {
     extName = 'AnimeLek'
     extClass = '.AnimeLek'
-    extVersionCode = 34
+    extVersionCode = 1
 }
 
 apply from: "$rootDir/common.gradle"
 
 dependencies {
     implementation(project(':lib:streamtape-extractor'))
+    implementation(project(':lib:multiservers'))
     implementation(project(':lib:okru-extractor'))
     implementation(project(':lib:dood-extractor'))
     implementation(project(':lib:vidbom-extractor'))
+    implementation(project(':lib:mixdrop-extractor'))
+    implementation(project(':lib:mp4upload-extractor'))
+    implementation(project(':lib:streamwish-extractor'))
 }

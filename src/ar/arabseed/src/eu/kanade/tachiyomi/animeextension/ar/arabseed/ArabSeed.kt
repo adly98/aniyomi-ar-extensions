@@ -14,8 +14,10 @@ import eu.kanade.tachiyomi.lib.doodextractor.DoodExtractor
 import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
 import eu.kanade.tachiyomi.lib.voeextractor.VoeExtractor
 import eu.kanade.tachiyomi.network.GET
+import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.util.asJsoup
 import eu.kanade.tachiyomi.util.parallelCatchingFlatMapBlocking
+import okhttp3.FormBody
 import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.nodes.Document
@@ -56,19 +58,32 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun popularAnimeNextPageSelector() = "ul.page-numbers li a.next"
 
     // ============================== Episode ===============================
-    override fun episodeListSelector() = "div.ContainerEpisodesList a"
+    override fun episodeListSelector() = "a"
+    private fun seasonListSelector() = "div.SeasonsListHolder ul li"
 
     override fun episodeListParse(response: Response): List<SEpisode> {
         val document = response.asJsoup()
-        val episodes = document.select(episodeListSelector())
+        val seasons = document.select(seasonListSelector())
         return when {
-            episodes.isEmpty() -> {
+            seasons.isEmpty() -> {
                 SEpisode.create().apply {
                     setUrlWithoutDomain(document.location())
                     name = "مشاهدة"
                 }.let(::listOf)
             }
-            else -> episodes.map(::episodeFromElement)
+            else -> {
+                seasons.flatMap {
+                    val season = it.text()
+                    val body = FormBody.Builder()
+                        .add("season", it.attr("data-season"))
+                        .add("post_id", it.attr("data-id"))
+                        .build()
+                    val req = client.newCall(POST("$baseUrl/wp-content/themes/Elshaikh2021/Ajaxat/Single/Episodes.php", body = body)).execute().asJsoup()
+                    req.select(episodeListSelector()).map(::episodeFromElement).forEach { ep ->
+                        ep.name = "$season: ${ep.name}"
+                    }
+                }
+            }
         }
     }
 
@@ -102,14 +117,14 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     private fun getVideosFromUrl(url: String, quality: String): List<Video> {
         return when {
-            "reviewtech" in url || "reviewrate" in url -> {
+            "reviewtech" in url || "reviewrate" in url || "gamezone" in url -> {
                 val iframeResponse = client.newCall(GET(url)).execute()
                     .asJsoup()
-                val videoUrl = iframeResponse.selectFirst("source")!!.attr("abs:src")
-                listOf(Video(videoUrl, quality + "p", videoUrl))
+                val videoUrl = iframeResponse.selectFirst("source")!!.attr("src")
+                listOf(Video(videoUrl, quality, videoUrl))
             }
-            "dood" in url -> doodExtractor.videosFromUrl(url)
-            "fviplions" in url || "wish" in url -> streamwishExtractor.videosFromUrl(url)
+            "dood" in url || "d0o0d" in url -> doodExtractor.videosFromUrl(url)
+            "vidmoly" in url || "wish" in url || "filemoon" in url -> streamwishExtractor.videosFromUrl(url)
             "voe.sx" in url -> voeExtractor.videosFromUrl(url)
             else -> null
         } ?: emptyList()
@@ -155,7 +170,7 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             .text()
             .replace(" مترجم", "").replace("فيلم ", "")
         genre = document.select("div.MetaTermsInfo  > li:contains(النوع) > a").eachText().joinToString()
-        description = document.selectFirst("div.StoryLine p")!!.text()
+        description = document.selectLast("div.StoryLine p")!!.text()
         status = when {
             document.location().contains("/selary/") -> SAnime.UNKNOWN
             else -> SAnime.COMPLETED
@@ -178,23 +193,27 @@ class ArabSeed : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
         arrayOf(
             Pair("أختر", ""),
             Pair("افلام عربي", "arabic-movies-5/"),
-            Pair("افلام اجنبى", "foreign-movies3/"),
-            Pair("افلام اسيوية", "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d8%a7%d8%b3%d9%8a%d9%88%d9%8a%d8%a9/"),
+            Pair("افلام اجنبى", "foreign-movies/"),
+            Pair("افلام اسيوية", "asian-movies/"),
             Pair("افلام هندى", "indian-movies/"),
-            Pair("افلام تركية", "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d8%aa%d8%b1%d9%83%d9%8a%d8%a9/"),
+            Pair("افلام تركية", "turkish-movies/"),
             Pair("افلام انيميشن", "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d8%a7%d9%86%d9%8a%d9%85%d9%8a%d8%b4%d9%86/"),
             Pair("افلام كلاسيكيه", "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d9%83%d9%84%d8%a7%d8%b3%d9%8a%d9%83%d9%8a%d9%87/"),
             Pair("افلام مدبلجة", "%d8%a7%d9%81%d9%84%d8%a7%d9%85-%d9%85%d8%af%d8%a8%d9%84%d8%ac%d8%a9/"),
-            Pair("افلام Netfilx", "netfilx/افلام-netfilx/"),
-            Pair("مسلسلات عربي", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b9%d8%b1%d8%a8%d9%8a/"),
+            Pair("Netfilx افلام", "netfilx/افلام-netfilx/"),
+            Pair("مسلسلات عربي", "arabic-series/"),
             Pair("مسلسلات اجنبي", "foreign-series/"),
-            Pair("مسلسلات تركيه", "turkish-series-1/"),
+            Pair("مسلسلات تركية", "turkish-series-1/"),
+            Pair("مسلسلات كورية", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d9%83%d9%88%d8%b1%d9%8a%d9%87/"),
             Pair("برامج تلفزيونية", "%d8%a8%d8%b1%d8%a7%d9%85%d8%ac-%d8%aa%d9%84%d9%81%d8%b2%d9%8a%d9%88%d9%86%d9%8a%d8%a9/"),
-            Pair("مسلسلات كرتون", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d9%83%d8%b1%d8%aa%d9%88%d9%86/"),
+            Pair("مسلسلات كرتون", "cartoon-series/"),
             Pair("مسلسلات رمضان 2019", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2019/"),
             Pair("مسلسلات رمضان 2020", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2020-hd/"),
             Pair("مسلسلات رمضان 2021", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2021/"),
-            Pair("مسلسلات Netfilx", "netfilx/%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-netfilz/"),
+            Pair("مسلسلات رمضان 2022", "%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-%d8%b1%d9%85%d8%b6%d8%a7%d9%86-2022/"),
+            Pair("مسلسلات رمضان 2023", "ramadan-series-2023/"),
+            Pair("مسلسلات رمضان 2024", "ramadan-series-2024/"),
+            Pair("Netfilx مسلسلات"", "netfilx/%d9%85%d8%b3%d9%84%d8%b3%d9%84%d8%a7%d8%aa-netfilz/"),
         ),
     )
 

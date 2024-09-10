@@ -35,7 +35,7 @@ class Animeiat : ConfigurableAnimeSource, AnimeHttpSource() {
 
     override val lang = "ar"
 
-    override val supportsLatest = false
+    override val supportsLatest = true
 
     private val json = Json {
         ignoreUnknownKeys = true

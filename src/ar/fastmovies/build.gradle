@@ -1,6 +1,6 @@
 ext {
-    extName = 'FASELHD'
-    extClass = '.FASELHD'
+    extName = 'Fast Movies'
+    extClass = '.FastMovies'
     extVersionCode = 1
 }
 

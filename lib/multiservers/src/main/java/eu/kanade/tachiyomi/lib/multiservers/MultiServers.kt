@@ -6,6 +6,7 @@ import eu.kanade.tachiyomi.network.GET
 import kotlinx.serialization.json.Json
 import okhttp3.Headers
 import okhttp3.OkHttpClient
+import kotlin.math.abs
 
 class MultiServers(private val client: OkHttpClient, private val headers: Headers) {
     private val json = Json { ignoreUnknownKeys = true }
@@ -22,7 +23,7 @@ class MultiServers(private val client: OkHttpClient, private val headers: Header
         if (type == "mirror") {
             val resolved = json.decodeFromString<IframeResponse>(iframe)
             resolved.props.streams.data.forEach {
-                val quality = it.resolution.substringAfter("x") + "p"
+                val quality = it.resolution.substringAfter("x").let(::stnQuality)
                 val size = it.size.let(::convertSize)
                 it.mirrors.forEach { mirror ->
                     val link = if (mirror.link.startsWith("/")) "https:${mirror.link}" else mirror.link
@@ -40,6 +41,12 @@ class MultiServers(private val client: OkHttpClient, private val headers: Header
     }
 
     data class Provider(val url: String, val name: String, val quality: String, val size: String)
+    private fun stnQuality(quality: String): String {
+        val intQuality = quality.toInt()
+        val standardQualities = listOf(144, 240, 360, 480, 720, 1080)
+        val result =  standardQualities.minByOrNull { abs(it - intQuality) } ?: quality
+        return "${result}p"
+    }
     private fun  convertSize(bits: Long): String {
         val bytes = bits / 8
         return when {

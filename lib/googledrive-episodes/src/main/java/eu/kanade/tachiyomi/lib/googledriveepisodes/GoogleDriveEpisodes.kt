@@ -33,7 +33,7 @@ class GoogleDriveEpisodes(private val client: OkHttpClient, private val headers:
             ).execute().asJsoup()
             if (driveDocument.selectFirst("title:contains(Error 404 \\(Not found\\))") != null) return
 
-            val keyScript = driveDocument.select("script").first { script ->
+            val keyScript = drivescript").first { script ->
                 KEY_REGEX.find(script.data()) != null
             }.data()
             val key = KEY_REGEX.find(keyScript)?.groupValues?.get(1) ?: ""

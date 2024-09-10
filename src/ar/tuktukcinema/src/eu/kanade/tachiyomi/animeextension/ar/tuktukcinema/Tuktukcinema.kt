@@ -17,6 +17,7 @@ import eu.kanade.tachiyomi.lib.mp4uploadextractor.Mp4uploadExtractor
 import eu.kanade.tachiyomi.lib.multiservers.MultiServers
 import eu.kanade.tachiyomi.lib.okruextractor.OkruExtractor
 import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
+import eu.kanade.tachiyomi.lib.urlresolver.UrlResolver
 import eu.kanade.tachiyomi.lib.vidbomextractor.VidBomExtractor
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
@@ -147,6 +148,7 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private val vidBomExtractor by lazy { VidBomExtractor(client) }
     private val mp4uploadExtractor by lazy { Mp4uploadExtractor(client) }
     private val mixDropExtractor by lazy { MixDropExtractor(client, headers) }
+    private val urlResolver by lazy { UrlResolver(client) }
 
     private fun extractVideos(
         url: String,
@@ -178,7 +180,7 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                 mp4uploadExtractor.videosFromUrl(url, headers)
             }
 
-            "Upstream" in server || "streamwish" in server || "vidhide" in server -> {
+            "Upstream" in server || "streamwish" in server || "vidhide" in server || "lulu" in server -> {
                 streamWishExtractor.videosFromUrl(url, server.apply { first().uppercase() })
             }
 
@@ -186,7 +188,7 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                 mixDropExtractor.videosFromUrl(url, customQuality?.let { "$it " } ?: "")
             }
 
-            else -> emptyList()
+            else -> urlResolver.videosFromUrl(url, headers, customQuality)
         }
     }
 
@@ -200,7 +202,7 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
         return sortedWith(
             compareBy { video ->
-                val videoQualityFiltered = video.quality.filter { it.isDigit() }
+                val videoQualityFiltered = video.quality.substringBefore("[").filter { it.isDigit() }
                 val videoQuality = if (videoQualityFiltered.isBlank()) {
                     Int.MAX_VALUE
                 } else {

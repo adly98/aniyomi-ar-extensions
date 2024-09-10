@@ -7,15 +7,19 @@ import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
 import okhttp3.Headers
 import okhttp3.OkHttpClient
+import java.util.Locale
 
 class StreamWishExtractor(private val client: OkHttpClient, private val headers: Headers) {
     private val playlistUtils by lazy { PlaylistUtils(client, headers) }
 
-    fun videosFromUrl(url: String, prefix: String) = videosFromUrl(url) { "$prefix - $it" }
+    fun videosFromUrl(url: String, prefix: String) = videosFromUrl(url) { "${prefix.proper()}: $it" }
 
-    fun videosFromUrl(url: String, videoNameGen: (String) -> String = { quality -> "StreamWish - $quality" }): List<Video> {
-        val doc = client.newCall(GET(url, headers)).execute()
-            .asJsoup()
+    private fun String.proper(): String {
+        return this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(
+            Locale.getDefault()) else it.toString() }
+    }
+    fun videosFromUrl(url: String, videoNameGen: (String) -> String = { quality -> "StreamWish: $quality" }): List<Video> {
+        val doc = client.newCall(GET(url, headers)).execute().asJsoup()
         // Sometimes the script body is packed, sometimes it isn't
         val scriptBody = doc.selectFirst("script:containsData(m3u8)")?.data()
             ?.let { script ->

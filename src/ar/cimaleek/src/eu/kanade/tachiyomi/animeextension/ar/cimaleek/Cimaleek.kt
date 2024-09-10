@@ -165,7 +165,7 @@ class Cimaleek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
             ".m3u8" in webViewResult.url -> {
                 val subtitleList = if (webViewResult.subtitle.isNotBlank()) {
-                    Track(webViewResult.subtitle, "Arabic",).let(::listOf)
+                    Track(webViewResult.subtitle, "Arabic").let(::listOf)
                 } else { emptyList() }
                 playlistUtils.extractFromHls(
                     webViewResult.url,

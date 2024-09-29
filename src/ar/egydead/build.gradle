@@ -1,7 +1,7 @@
 ext {
     extName = 'Egy Dead'
     extClass = '.EgyDead'
-    extVersionCode = 2
+    extVersionCode = 3
 }
 
 apply from: "$rootDir/common.gradle"
@@ -10,5 +10,6 @@ dependencies {
     implementation(project(':lib:dood-extractor'))
     implementation(project(':lib:mixdrop-extractor'))
     implementation(project(':lib:streamwish-extractor'))
+    implementation(project(':lib:uqload-extractor'))
     implementation(project(':lib:url-resolver'))
 }

@@ -14,6 +14,7 @@ import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.lib.doodextractor.DoodExtractor
 import eu.kanade.tachiyomi.lib.mixdropextractor.MixDropExtractor
 import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
+import eu.kanade.tachiyomi.lib.uqloadextractor.UqloadExtractor
 import eu.kanade.tachiyomi.lib.urlresolver.UrlResolver
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
@@ -83,7 +84,7 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                 val assemblySelector = "div.salery-list li.movieItem a"
                 episodes.addAll(document.select(assemblySelector).map(::episodeExtract))
             } else if (url.contains("serie") || url.contains("season")) {
-                if (document.select("div.seasons-list li.movieItem a").isEmpty()) {
+                if (document.select("div.seasons-list li.movieItem a").isNullOrEmpty()) {
                     episodes.addAll(
                         document.select(episodeListSelector()).map(::episodeFromElement),
                     )
@@ -123,31 +124,23 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
     private val doodExtractor by lazy { DoodExtractor(client) }
     private val mixDropExtractor by lazy { MixDropExtractor(client, headers) }
+    private val uqloadExtractor by lazy { UqloadExtractor(client) }
     private val urlResolver by lazy { UrlResolver(client) }
 
     override fun videoListParse(response: Response): List<Video> {
         val requestBody = FormBody.Builder().add("View", 1.toString()).build()
         val newHeaders = headers.newBuilder().add("referer", "$baseUrl/").build()
-        val newResponse = client.newCall(
-            POST(
-                response.request.url.toString(),
-                headers = newHeaders,
-                body = requestBody,
-            ),
-        ).execute().asJsoup()
-        return newResponse.select(videoListSelector())
-            .parallelCatchingFlatMapBlocking(::extractVideos)
+        val newResponse = client.newCall(POST(response.request.url.toString(), headers = newHeaders, body = requestBody)).execute().asJsoup()
+        return newResponse.select(videoListSelector()).parallelCatchingFlatMapBlocking(::extractVideos)
     }
 
     private fun extractVideos(link: Element): List<Video> {
         val url = link.attr("data-link")
         return when {
-            "gsfqzmqu" in url || "gsfomqu" in url || "gsfjzmqu" in url || "732eg54de642sa" in url -> streamWishExtractor.videosFromUrl(
-                url,
-            )
-
+            "gsfqzmqu" in url || "gsfomqu" in url || "gsfjzmqu" in url || "732eg54de642sa" in url -> streamWishExtractor.videosFromUrl(url)
             "dood" in url -> doodExtractor.videosFromUrl(url)
             "mixdrop" in url -> mixDropExtractor.videosFromUrl(url)
+            "uqload" in url -> uqloadExtractor.videosFromUrl(url)
             else -> urlResolver.videosFromUrl(url, headers)
         }
     }
@@ -265,7 +258,6 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                 val (movieName, type) = movieRegex.find(title)!!.destructured
                 movieName + if (details) " ($type)" else ""
             }
-
             seriesRegex.containsMatchIn(title) -> {
                 val (seriesName, epNum) = seriesRegex.find(title)!!.destructured
                 when {
@@ -274,7 +266,6 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     else -> seriesName
                 }
             }
-
             else -> title
         }.trim()
     }

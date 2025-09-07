@@ -29,8 +29,6 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override val baseUrl = "https:/www.faselhd.pro"
 
-    override val baseUr2 = "https:/www.faselhd.pro"
-
     override val lang = "ar"
 
     override val supportsLatest = true
@@ -42,9 +40,15 @@ class FASELHD : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private val playlistUtils by lazy { PlaylistUtils(client, headers) }
 
     override fun headersBuilder(): Headers.Builder {
-        return super.headersBuilder()
-            .add("Referer", "baseUrl", "baseUr2")
-    }
+    return super.headersBuilder()
+        .add(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.137 Safari/537.36"
+        )
+        .add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+        .add("Accept-Language", "ar,en-US;q=0.9,en;q=0.8")
+        .add("Referer", baseUrl)
+}
 
     // ============================== Popular ===============================
     override fun popularAnimeSelector(): String = "div#postList div.col-xl-2 a"

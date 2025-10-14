@@ -12,13 +12,11 @@ import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.lib.doodextractor.DoodExtractor
+import eu.kanade.tachiyomi.lib.megamaxmultiserver.MegaMaxMultiServer
 import eu.kanade.tachiyomi.lib.mixdropextractor.MixDropExtractor
-import eu.kanade.tachiyomi.lib.mp4uploadextractor.Mp4uploadExtractor
-import eu.kanade.tachiyomi.lib.multiservers.MultiServers
-import eu.kanade.tachiyomi.lib.okruextractor.OkruExtractor
 import eu.kanade.tachiyomi.lib.streamwishextractor.StreamWishExtractor
-import eu.kanade.tachiyomi.lib.urlresolver.UrlResolver
 import eu.kanade.tachiyomi.lib.vidbomextractor.VidBomExtractor
+import eu.kanade.tachiyomi.lib.vidlandextractor.VidLandExtractor
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
 import eu.kanade.tachiyomi.util.parallelCatchingFlatMapBlocking
@@ -129,30 +127,19 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
-        val videoElements = document.select(videoListSelector())
-        return if (videoElements.isEmpty()) {
-            val new = client.newCall(GET(response.request.url.toString() + "watch/")).execute()
-            Video("http://", new.toString(), "http://").let(::listOf)
-        } else {
-            document.select(videoListSelector()).parallelCatchingFlatMapBlocking {
-                val url = it.attr("data-link").substringBefore("0REL0Y").reversed()
-                val newUrl = String(Base64.getDecoder().decode(url))
-                val txt = it.text()
-                // listOf(Video(newUrl, newUrl, newUrl), extractVideos(newUrl, txt))
-                extractVideos(newUrl, txt)
-            }
+        return document.select(videoListSelector()).parallelCatchingFlatMapBlocking {
+            val url = it.attr("data-link").substringBefore("0REL0Y").reversed()
+            extractVideos(String(Base64.getDecoder().decode(url)), it.text())
         }
+        
     }
-
-    private val multiServers by lazy { MultiServers(client, headers) }
-    private val okRuExtractor by lazy { OkruExtractor(client) }
-    private val dooDExtractor by lazy { DoodExtractor(client) }
+    private val doodExtractor by lazy { DoodExtractor(client) }
+    private val megaMax by lazy { MegaMaxMultiServer(client, headers) }
+    private val mixDropExtractor by lazy { MixDropExtractor(client) }
     private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
     private val vidBomExtractor by lazy { VidBomExtractor(client) }
-    private val mp4uploadExtractor by lazy { Mp4uploadExtractor(client) }
-    private val mixDropExtractor by lazy { MixDropExtractor(client, headers) }
-    private val urlResolver by lazy { UrlResolver(client) }
-
+    private val vidLandExtractor by lazy { VidLandExtractor(client) }
+   
     private fun extractVideos(
         url: String,
         server: String,
@@ -160,38 +147,40 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     ): List<Video> {
         return when {
             "iframe" in url -> {
-                return multiServers.extractedUrls(url).parallelCatchingFlatMapBlocking {
+                return megaMax.extractUrls(url).parallelCatchingFlatMapBlocking {
                     extractVideos(it.url, it.name, it.quality)
                 }
             }
 
-            "ok.ru" in url -> {
-                okRuExtractor.videosFromUrl(url)
-            }
-
-            "Vidbom" in server || "Vidshare" in server || "Govid" in server -> {
-                val newH = headers.newBuilder().add("Referer", baseUrl).build()
-                vidBomExtractor.videosFromUrl(url, newH)
+            "mixdrop" in server -> {
+                mixDropExtractor.videosFromUrl(url, customQuality ?: "")
             }
 
             "dood" in server -> {
-                dooDExtractor.videoFromUrl(url, "Dood: ${customQuality ?: "Mirror"}")?.let(::listOf)
-                    ?: emptyList()
+                doodExtractor.videosFromUrl(url, customQuality)
             }
 
-            "mp4" in server -> {
-                mp4uploadExtractor.videosFromUrl(url, headers)
-            }
-
-            "Upstream" in server || "streamwish" in server || "vidhide" in server || "lulu" in server -> {
+            "lulustream" in server -> {
                 streamWishExtractor.videosFromUrl(url, server.apply { first().uppercase() })
             }
 
-            "mixdrop" in server -> {
-                mixDropExtractor.videosFromUrl(url, customQuality?.let { "$it " } ?: "")
+            "krakenfiles" in server -> {
+                val page = client.newCall(GET(url, headers)).execute().asJsoup()
+                page.select("source").map {
+                    Video(it.attr("src"), "Kraken: $customQuality", it.attr("src"))
+                }
             }
 
-            else -> urlResolver.videosFromUrl(url, headers, customQuality)
+            "earnvids" in server -> {
+                vidLandExtractor.videosFromUrl(url)
+            }
+
+            "Vidbom" in server || "Vidshare" in server || "Govid" in server -> {
+                val newH = headers.newBuilder().add("Referer", "${baseUrl}/").build()
+                vidBomExtractor.videosFromUrl(url, newH, server)
+            }
+
+            else -> emptyList()
         }
     }
 

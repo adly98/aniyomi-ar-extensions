@@ -1,32 +1,37 @@
 package eu.kanade.tachiyomi.lib.vidbomextractor
 
+import dev.datlag.jsunpacker.JsUnpacker
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.lib.playlistutils.PlaylistUtils
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 
 class VidBomExtractor(private val client: OkHttpClient) {
-    fun videosFromUrl(url: String, headers: Headers? = null): List<Video> {
+    
+    private val videoRegex by lazy { Regex("""https?://[^\"]+\.(?:m3u8|mp4)""") }
+
+    private val playlistUtils by lazy { PlaylistUtils(client) }
+
+    fun videosFromUrl(url: String, headers: Headers? = null, src: String = ""): List<Video> {
         val request = if (headers != null) GET(url, headers) else GET(url)
-        val doc = client.newCall(request).execute().asJsoup()
-        val script = doc.selectFirst("script:containsData(sources)")!!
-        val data = script.data().substringAfter("sources: [").substringBefore("],")
-
-        return data.split("file:\"").drop(1).map { source ->
-            val src = source.substringBefore("\"")
-
-            val quality = when {
-                "v.mp4" in src -> {
-                    "${if("go" in url) "Govid" else "Vidbom"}: " + source.substringAfter("label:\"").substringBefore("\"")
+        val document = client.newCall(request).execute().asJsoup()
+        val script = document.selectFirst("script:containsData(eval)")
+            ?.data()
+            ?.let(JsUnpacker::unpackAndCombine)
+            ?: return emptyList()
+        
+        return videoRegex.find(script)?.value?.let{
+            when {
+                "v.mp4" in it -> {
+                    val quality = "${src}: " + script.substringAfter("label:\"").substringBefore("\"")
+                    Video(it, quality, it).let(::listOf)
                 }
                 else -> {
-                    val m3u8 = client.newCall(GET(src)).execute().body.string()
-                        .substringAfter("RESOLUTION=").substringAfter("x").substringBefore(",") + "p"
-                    "Vidshare: $m3u8"
+                    playlistUtils.extractFromHls(it, url, videoNameGen = { quality -> "${src}: $quality" })
                 }
             }
-            Video(src, quality, src)
-        }
+        } ?: emptyList()
     }
 }

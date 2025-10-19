@@ -193,7 +193,7 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             preferences.getString("preferred_quality", "1080")!!.toIntOrNull() ?: 1080
 
         return sortedWith(
-            compareBy { video ->
+            compareBy<Video> { video ->
                 val videoQualityFiltered =
                     video.quality.substringBefore("[").filter { it.isDigit() }
                 val videoQuality = if (videoQualityFiltered.isBlank()) {
@@ -202,6 +202,8 @@ class Tuktukcinema : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
                     videoQualityFiltered.toIntOrNull() ?: Int.MAX_VALUE
                 }
                 abs(preferredQuality - videoQuality)
+            }.thenBy { video ->
+                !video.url.contains("mp4", ignoreCase = true)
             },
         )
     }

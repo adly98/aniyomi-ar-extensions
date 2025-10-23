@@ -93,7 +93,7 @@ class AnimeLek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     private val streamTapeExtractor by lazy { StreamTapeExtractor(client) }
     private val vidBomExtractor by lazy { VidBomExtractor(client) }
     private val mp4uploadExtractor by lazy { Mp4uploadExtractor(client) }
-    private val mixDropExtractor by lazy { MixDropExtractor(client, headers) }
+    private val mixDropExtractor by lazy { MixDropExtractor(client) }
 
     private fun extractVideos(
         url: String,
@@ -137,7 +137,7 @@ class AnimeLek : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
             }
 
             "mixdrop" in server -> {
-                mixDropExtractor.videosFromUrl(url, customQuality?.let { "$it " } ?: "")
+                mixDropExtractor.videosFromUrl(url, customQuality ?: "")
             }
 
             "streamtape" in server -> {

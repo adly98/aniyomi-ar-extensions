@@ -123,7 +123,7 @@ class EgyDead : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // ================================== video urls ==================================
     private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
     private val doodExtractor by lazy { DoodExtractor(client) }
-    private val mixDropExtractor by lazy { MixDropExtractor(client, headers) }
+    private val mixDropExtractor by lazy { MixDropExtractor(client) }
     private val uqloadExtractor by lazy { UqloadExtractor(client) }
     private val urlResolver by lazy { UrlResolver(client) }
 

@@ -17,7 +17,7 @@ class MegaMaxMultiServer(private val client: OkHttpClient, private val headers: 
             .add("X-Inertia", "true")
             .add("X-Inertia-Partial-Component", "files/$type/video")
             .add("X-Inertia-Partial-Data", "streams")
-            .add("X-Inertia-Version", "01ee5f8d116e0b7cae4ca35f2d4901a8")
+            .add("X-Inertia-Version", "d98bcc9c79d1c5ff36a86cc41dfcd275")
             .build()
         val iframe = client.newCall(GET(url, newHeaders)).execute().body.string()
         val urls = mutableListOf<Provider>()

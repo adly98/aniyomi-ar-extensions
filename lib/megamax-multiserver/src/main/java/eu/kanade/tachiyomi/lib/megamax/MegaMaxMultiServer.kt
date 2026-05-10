@@ -17,7 +17,7 @@ class MegaMaxMultiServer(private val client: OkHttpClient, private val headers: 
             .add("X-Inertia", "true")
             .add("X-Inertia-Partial-Component", "files/$type/video")
             .add("X-Inertia-Partial-Data", "streams")
-            .add("X-Inertia-Version", "01ee5f8d116e0b7cae4ca35f2d4901a8")
+            .add("X-Inertia-Version", getInertiaVersion(url))
             .build()
         val iframe = client.newCall(GET(url, newHeaders)).execute().body.string()
         val urls = mutableListOf<Provider>()
@@ -41,6 +41,19 @@ class MegaMaxMultiServer(private val client: OkHttpClient, private val headers: 
         return urls
     }
 
+    private fun getInertiaVersion(url: String): String {
+        val response = client.newCall(GET(url, headers)).execute()
+        response.body.use { body ->
+            val source = body.source()
+            while (!source.exhausted()) {
+                val line = source.readUtf8Line() ?: continue
+                VERSION_REGEX.find(line)?.groupValues?.get(1)?.let { return it }
+            }
+        }
+        Log.e("MegaMaxMultiServer", "Inertia version not found for URL: $url")
+        return ""
+    }
+
     data class Provider(val url: String, val name: String, val quality: String, val size: String)
 
     private fun stnQuality(quality: String): String {
@@ -58,5 +71,9 @@ class MegaMaxMultiServer(private val client: OkHttpClient, private val headers: 
             bytes >= 1 shl 10 -> "%.2f KB".format(bytes / (1 shl 10).toDouble())
             else -> "$bytes bytes"
         }
+    }
+
+    companion object {
+        private val VERSION_REGEX = Regex(""","version":"(.*?)",""")
     }
 }

@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.lib.megamaxmultiserver
 
+import android.util.Log
 import eu.kanade.tachiyomi.lib.megamaxmultiserver.dto.IframeResponse
 import eu.kanade.tachiyomi.lib.megamaxmultiserver.dto.LeechResponse
 import eu.kanade.tachiyomi.network.GET
